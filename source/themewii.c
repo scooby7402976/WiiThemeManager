@@ -11,7 +11,7 @@
 #include "wpad.h"
 #include "iospatch.h"
 #include "fat_mine.h"
-int debug = 1;
+
 void __exception_setreload(int);
 
 int main(int argc, char **argv){
@@ -44,9 +44,9 @@ int main(int argc, char **argv){
 		}
 	}
 	
-	logfile("AHBPROT_DISABLED[%d]\n", AHBPROT_DISABLED);
-	logfile("ahbprot[%d]\n", ahbprot);
-	logfile("iospatch[%d]\n", iospatch);
+	if(debug) logfile("AHBPROT_DISABLED[%d]\n", AHBPROT_DISABLED);
+	if(debug) logfile("ahbprot[%d]\n", ahbprot);
+	if(debug) logfile("iospatch[%d]\n", iospatch);
 	
 	// Initialize system
 	Video_Init();

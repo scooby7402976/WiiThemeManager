@@ -30,6 +30,7 @@
 #include <fcntl.h>
 
 #include "http.h"
+#include "menu.h"
 
 char *http_host;
 u16 http_port;
@@ -188,6 +189,7 @@ bool tcp_read (const s32 s, u8 **buffer, const u32 length) {
 
 	t = gettime ();
 	while (left) {
+		__Draw_Loading();
 		if (ticks_to_millisecs (diff_ticks (t, gettime ())) >
 				TCP_BLOCK_RECV_TIMEOUT) {
 			printf("tcp_read timeout\n");
@@ -300,7 +302,7 @@ bool http_request (const char *url, const u32 max_size) {
 
 	http_port = 80;
 	http_max_size = max_size;
-	
+	__Draw_Loading();
 	http_status = 404;
 	content_length = 0;
 	http_data = NULL;
@@ -379,7 +381,7 @@ bool http_request (const char *url, const u32 max_size) {
 
 bool http_get_result (u32 *_http_status, u8 **content, u32 *length) {
 	if (http_status) *_http_status = http_status;
-
+	__Draw_Loading();
 	if (result == HTTPR_OK) {
 		*content = http_data;
 		*length = content_length;

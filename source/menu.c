@@ -129,6 +129,7 @@ const char *getregion(u32 num);
 const char *getsysvernum(u32 num);
 const char *getdevicename(int index);
 int __Spin_Question(void);
+int __Select_Device(void);
 void __Load_Config(void);
 //int __DownloadDBfile(char *ThemeFile);
 //int __DownloadDBpng();
@@ -356,7 +357,7 @@ int __Question_Window(const char* title, const char* text, const char* a1, const
 			break;
 		}
 	}
-	logfile("ret spin question [%i]\n", ret);
+	if(debug) logfile("ret spin question [%i]\n", ret);
 	return ret;
 }
 
@@ -638,7 +639,7 @@ u32 filelist_retrieve(bool avail_list) {
 			ThemeList[ff].type = 10;
 			//gprintf("theme =%s .type%d %d \n",ThemeList[ff].title, ThemeList[ff].type,ff);
 		}
-		logfile("cnt[%u]\n", cnt);
+		if(debug) logfile("cnt[%u]\n", cnt);
 		goto end;
     }
 	
@@ -646,7 +647,7 @@ u32 filelist_retrieve(bool avail_list) {
 
     
 	sprintf(dirpath, "%s:/themes", getdevicename(thememode));
-	logfile("dirpath[%s]\n", dirpath);
+	if(debug) logfile("dirpath[%s]\n", dirpath);
     /*else if(i == 4)  // usb(uneek nand)
     {
         sprintf(dirpath2, "/themes");
@@ -678,7 +679,7 @@ u32 filelist_retrieve(bool avail_list) {
         return -1;
     }
 	cnt = 0;
-	//logfile("cnt[%u]\n", cnt);
+	//if(debug) logfile("cnt[%u]\n", cnt);
     // Get directory entries 
     while((entry = readdir(dir))) // If we get EOF, the expression is 0 and
                                      // the loop stops. 
@@ -686,11 +687,11 @@ u32 filelist_retrieve(bool avail_list) {
 		if(strncmp(entry->d_name, ".", 1) != 0 && strncmp(entry->d_name, "..", 2) != 0)
 		cnt += 1;
     }
-	//logfile("2-cnt2[%u]\n", cnt2);
+	//if(debug) logfile("2-cnt2[%u]\n", cnt2);
 	rewinddir(dir);
 	ent = allocate_memory(sizeof(dirent_t) * cnt);
 	cnt = 0;
-	//logfile("3-cnt2[%u]\n", cnt2);
+	//if(debug) logfile("3-cnt2[%u]\n", cnt2);
 	while((entry = readdir(dir))) // If we get EOF, the expression is 0 and
                                      // the loop stops. 
     {
@@ -965,10 +966,10 @@ s32 InstallFile(FILE * fp) {
 	ISFS_Seek(nandfile, 0, SEEK_SET);
 	
 	length = filesize(fp);
-	logfile("length of file %d \n",length);
+	if(debug) logfile("length of file %d \n",length);
 	numchunks = length/CHUNKS + ((length % CHUNKS != 0) ? 1 : 0);
 	
-	logfile("[+] Total parts: %d\n", numchunks);
+	if(debug) logfile("[+] Total parts: %d\n", numchunks);
 	
 	for(i = 0; i < numchunks; i++)
 	{
@@ -982,14 +983,14 @@ s32 InstallFile(FILE * fp) {
 		
 		sprintf(ms,"Installing part %d",i+1);
 
-		logfile("	Installing part %d\n",(i + 1) );
+		if(debug) logfile("	Installing part %d\n",(i + 1) );
 
 		__Draw_Message(ms,0);
 		
 		ret = fread(data, 1, CHUNKS, fp);
 		if (ret < 0) 
 		{
-			logfile("[-] Error reading from SD! (ret = %d)\n\n", ret);
+			if(debug) logfile("[-] Error reading from SD! (ret = %d)\n\n", ret);
 			
 			//gprintf("	Press any button to continue...\n");
 			return -1;
@@ -1002,7 +1003,7 @@ s32 InstallFile(FILE * fp) {
 		ret = ISFS_Write(nandfile, data, cursize);
 		if(ret < 0)
 		{
-			logfile("[-] Error writing to NAND! (ret = %d)\n\n", ret);
+			if(debug) logfile("[-] Error writing to NAND! (ret = %d)\n\n", ret);
 			//gprintf("	Press any button to continue...\n");
 			return ret;
 		}
@@ -1058,7 +1059,7 @@ u32 findinstallthemeversion(char * name) {
 	sprintf(filepath, "%s:/themes/%s", getdevicename(thememode), name);
     fp = fopen(filepath, "rb");
     if (!fp) {
-        logfile("unable to open path\n");
+        if(debug) logfile("unable to open path\n");
 		return 0;
 	}
     length = filesize(fp);
@@ -1068,8 +1069,8 @@ u32 findinstallthemeversion(char * name) {
 	fclose(fp);
 	
     if(length <= 0) {
-        logfile("[-] Unable to read file !! \n");
-		//logfile("[-] Unable to read file !! \n");
+        if(debug) logfile("[-] Unable to read file !! \n");
+		//if(debug) logfile("[-] Unable to read file !! \n");
         return 0;
     }
     else {
@@ -1240,13 +1241,13 @@ int __install_Theme() {  // install.app .csm file
 	sleep(2);
 	
 	sprintf(filepath, "%s:/themes/%s", getdevicename(thememode), ThemeList[orden[selectedtheme]].title);
-	logfile("filepath (%s) \n",filepath);
+	if(debug) logfile("filepath (%s) \n",filepath);
 	curthemestats.version = GetSysMenuVersion();
 	retreivecurrentthemeregion(curthemestats.version);
-	logfile("cur theme .version(%d) .region(%c) \n",curthemestats.version, curthemestats.region);
+	if(debug) logfile("cur theme .version(%d) .region(%c) \n",curthemestats.version, curthemestats.region);
 	ThemeList[orden[selectedtheme]].version = findinstallthemeversion(ThemeList[orden[selectedtheme]].title);
     installregion(ThemeList[orden[selectedtheme]].version);
-	logfile("install theme .version(%d) .region(%c) \n",ThemeList[orden[selectedtheme]].version,ThemeList[orden[selectedtheme]].region);
+	if(debug) logfile("install theme .version(%d) .region(%c) \n",ThemeList[orden[selectedtheme]].version,ThemeList[orden[selectedtheme]].region);
 	
 	if(curthemestats.version != ThemeList[orden[selectedtheme]].version) {
         const char *badversion = "Install can not continue system versions differ ! Press any button to exit.";
@@ -1261,7 +1262,7 @@ int __install_Theme() {  // install.app .csm file
    
     fp = fopen(filepath, "rb");
     if (!fp){
-        logfile("[+] File Open Error not on SD!\n");
+        if(debug) logfile("[+] File Open Error not on SD!\n");
     }
 	// Install 
     InstallFile(fp);
@@ -1307,8 +1308,17 @@ int __Select_Theme(void){
 	hotSpot = hotSpotPrev = -1;
 
 	// Load images from actual page
-	if(pages < page+1)
+	if(pages < page+1) {
+		if(thememode == 0) {
+			if(!Fat_Mount(1))
+				if(!Fat_Mount(2)) {
+					__Draw_Message("Sd Card and Usb not Detected .", 0);
+					sleep(3);
+					return MENU_HOME;
+				}
+		}
 		__Load_Images_From_Page();
+	}
 	__Draw_Page(-1);
 
 
@@ -1820,8 +1830,14 @@ int __Show_Theme(){
 		if(WPAD_ButtonsDown(WPAD_CHAN_0) || PAD_ButtonsDown(0)){
 			if((WPAD_ButtonsDown(WPAD_CHAN_0) & WPAD_BUTTON_A) || (PAD_ButtonsDown(0) & PAD_BUTTON_A)){
 				if(availList) {
+					thememode = __Select_Device();
+					if(!Fat_Mount(thememode)){
+						if(debug) logfile("fat not mounted %d \n", thememode);
+					}
+					else
+						if(debug) logfile("fat mounted %d \n", thememode);
 					answer = __Spin_Question();
-					logfile("answer[%i]\n", answer);
+					if(debug) logfile("answer[%i]\n", answer);
 				}
 				ret = MENU_INSTALL_THEME;
 				break;
@@ -2358,7 +2374,7 @@ int __download_Theme() {
 	
 	for(i = 0; i < 4; i++) {
 		__Draw_Loading();
-		logfile("i(%d)\n", i);
+		if(debug) logfile("i(%d)\n", i);
 		switch(i) {
 			case 0:
 				sprintf(sitepath, "%s%s", siteUrl, actions[i]);
@@ -2379,7 +2395,7 @@ int __download_Theme() {
 				__Draw_Message(tmpstr, 0);
 			break;
 		}
-		logfile("sitepath[%s]\n", sitepath);
+		if(debug) logfile("sitepath[%s]\n", sitepath);
 		ret = http_request(sitepath, Maxsize);
 		if(ret != 0 ) {
 			ret = http_get_result(&http_status, &outbuf, &outlen);
@@ -2388,11 +2404,11 @@ int __download_Theme() {
 				if(outlen > 0 && http_status == 200) {
 					memcpy(output, outbuf, outlen);
 					output[outlen] = 0;
-					logfile("%s\n", output);
+					if(debug) logfile("%s\n", output);
 					switch(i) {
 						case 0:
 							strcpy(sessionId, output);
-							logfile("id[%s\n", sessionId);
+							if(debug) logfile("id[%s\n", sessionId);
 							sleep(1);
 						break;
 						case 1:
@@ -2416,11 +2432,11 @@ int __download_Theme() {
 			}
 		}
 	}
-	logfile("link[%s]\n", themedownloadlink);
+	if(debug) logfile("link[%s]\n", themedownloadlink);
 	sprintf(sitepath, "%s", themedownloadlink);
 	sprintf(tmpstr, "Downloading Theme .");
 	__Draw_Message(tmpstr, 0);
-	logfile("sitepath[%s]\n", sitepath);
+	if(debug) logfile("sitepath[%s]\n", sitepath);
 	char savepath[128];
 	ret = http_request(sitepath, Maxsize);
 	if(ret != 0 ) {
@@ -2432,7 +2448,7 @@ int __download_Theme() {
 				if(token != NULL)
 				savename = token;
 			}
-			logfile("savename = %s", savename);
+			if(debug) logfile("savename = %s", savename);
 			sprintf(savepath,"%s:/themes/%s", getdevicename(thememode), savename);
 			__Draw_Loading();
 			
@@ -2443,9 +2459,9 @@ int __download_Theme() {
 		}
 	}
 	if(Fat_CheckFile(savepath)) {
-		logfile("\ndelete server session dir here .\n");
+		if(debug) logfile("\ndelete server session dir here .\n");
 		sprintf(sitepath, "%s%s%s", siteUrl, "removesessionDir&sessionId=", sessionId);
-		logfile("sitepath[%s]\n", sitepath);
+		if(debug) logfile("sitepath[%s]\n", sitepath);
 		ret = http_request(sitepath, Maxsize);
 	}
 	return MENU_HOME;
@@ -2467,20 +2483,14 @@ int Menu_Loop(){
 	systemmenuversion = GetSysMenuVersion();
 	if(systemmenuversion > 518) systemmenuversion = checkcustomsystemmenuversion();
 	
-	thememode = __Select_Device();
-	if(Fat_Mount(thememode) < 0){
-		logfile("fat not mounted %d \n", thememode);
-	}
-	else
-		logfile("fat mounted %d \n", thememode);
-	logfile("systemmenuversion(%d) \n", systemmenuversion);
+	if(debug) logfile("systemmenuversion(%d) \n", systemmenuversion);
 	sprintf(tmpstr,"%s:/config/wiithememanager", getdevicename(thememode));
-	logfile("tmpstr = %s \n", tmpstr);
+	if(debug) logfile("tmpstr = %s \n", tmpstr);
 	if(!Fat_CheckFile(tmpstr)) {
 		CreateSubfolder(tmpstr);
 	}
 	ret = ISFS_Initialize();
-	logfile("ret isfs init = %d\n", ret);
+	if(debug) logfile("ret isfs init = %d\n", ret);
 	
 	themecnt = filelist_retrieve(availList);
 	// Load skin images
@@ -2501,11 +2511,11 @@ int Menu_Loop(){
 			ret = __Home();
 		else if(ret == MENU_MANAGE_DEVICE){
 			thememode =  __Select_Device();
-			if(Fat_Mount(thememode) < 0){
+			if(!Fat_Mount(thememode)){
 				__Draw_Message("Unable to Detect Sd Card . Press any button to Exit .", thememode);
 			}
 			else
-				logfile("fat mounted %d availlist[%d]\n", thememode, availList);
+				if(debug) logfile("fat mounted %d availlist[%d]\n", thememode, availList);
 			themecnt = filelist_retrieve(availList);
 			__Load_Config();
 			ret = MENU_SELECT_THEME;

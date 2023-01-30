@@ -20,7 +20,7 @@
 #define THEMEWII_VERSION		2
 #define HOTSPOT_LEFT		MAXHOTSPOTS-2
 #define HOTSPOT_RIGHT		MAXHOTSPOTS-1
-
+#define debug                   0
 #include "video.h"
 
 
@@ -54,6 +54,7 @@ const char *getsysvernum(u32);
 
 int __downloadApp(int);
 
+void __Draw_Loading(void);
 void __Draw_Message(const char *, int);
 void logfile(const char *, ...);
 #ifdef __cplusplus

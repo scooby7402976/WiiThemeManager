@@ -14,7 +14,6 @@
 #include "usbstorage.h"
 
 
-
 //extern static u32 Dbase;
 
 const DISC_INTERFACE* interface;
@@ -26,7 +25,7 @@ const DISC_INTERFACE* interface;
 	const DISC_INTERFACE *interface;
 } fatDevice;*/
 
-s32 Fat_Mount(int dev){
+bool Fat_Mount(int dev){
 	s32 ret;
 
 	if(dev==SD)
@@ -34,26 +33,26 @@ s32 Fat_Mount(int dev){
 	else if(dev==USB)
 		interface=&__io_usbstorage;
 	else
-		return -1;
+		return 0;
 	
 
 	// Initialize SDHC interface
 	ret = interface->startup();
 	if(!ret)
-		return -2;
+		return 0;
 
 	// Mount device
 	if(dev==SD){
 		ret = fatMountSimple(DEV_MOUNT_SD, interface);
 		if (!ret)
-			return -3;
+			return 0;
 	}
 	if(dev==USB){
 		ret = fatMountSimple(DEV_MOUNT_USB, interface);
 		if (!ret)
-			return -4;
+			return 0;
 	}
-	return 0;
+	return 1;
 }
 
 s32 Fat_Unmount(void){

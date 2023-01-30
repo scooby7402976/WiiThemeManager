@@ -5,7 +5,7 @@
 #define USB		2
 
 /* Prototypes */
-s32 Fat_Mount(int);
+bool Fat_Mount(int);
 s32 Fat_Unmount(void);
 s32 Fat_ReadFile(const char *, void **);
 int Fat_MakeDir(const char *);
