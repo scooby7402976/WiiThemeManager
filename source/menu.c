@@ -1,6 +1,6 @@
 /* menu.c
  *
- * ThemeWii Wii theme installer based on the gui of mighty channels by scooby74029
+ * wiithememanager Wii theme installer based on the gui of mighty channels by scooby74029
  *
  * Triiforce(Mighty Channels) mod by Marc
  *
@@ -46,13 +46,13 @@
 #include "fileops.h"
 
 //Menu images
-#include "themewii_arrows_png.h"
-#include "themewii_background_png.h"
-#include "themewii_container_png.h"
-#include "themewii_container_wide_png.h"
-#include "themewii_empty_png.h"
-#include "themewii_loading_png.h"
-#include "themewii_numbers_png.h"
+#include "wiithememanager_arrows_png.h"
+#include "wiithememanager_background_png.h"
+#include "wiithememanager_container_png.h"
+#include "wiithememanager_container_wide_png.h"
+#include "wiithememanager_empty_png.h"
+#include "wiithememanager_loading_png.h"
+#include "wiithememanager_numbers_png.h"
 
 #define MAX_TEXTURES	6
 #define TEX_ARROWS		0
@@ -67,9 +67,9 @@ static MRCtex* textures[MAX_TEXTURES];
 #define ARROWS_X		        24
 #define ARROWS_Y		        210
 #define ARROWS_WIDTH	        20 
-#define THEMEWII_PATH		    "config/themewii/"
-#define IMAGES_PREFIX		    "images"
-#define THEMEWII_CONFIG_FILE	"themewii.cfg"
+#define WIITHEMEMANAGER_PATH		    "config/wiithememanager/"
+#define IMAGES_PREFIX		    "imgs"
+#define WIITHEMEMANAGER_CONFIG_FILE	"wiithememanager.cfg"
 
 #define EMPTY			-1
 
@@ -88,7 +88,7 @@ u8 commonkey[16] = { 0xeb, 0xe4, 0x2a, 0x22, 0x5e, 0x85, 0x93, 0xe4, 0x48,
      0xd9, 0xc5, 0x45, 0x73, 0x81, 0xaa, 0xf7
   };
 
-// Variables for themewii
+// Variables for wiithememanager
 static u16 pages, page, maxPages;
 static int selectedtheme=0, movingGame=-1;
 //static const char** lang;
@@ -142,7 +142,7 @@ void logfile(const char *format, ...) {
 	vsprintf (buffer,format, args);
 	FILE *f = NULL;
 	Fat_Mount(1);
-	sprintf(path, "%s:/themewii.log", getdevicename(1));
+	sprintf(path, "%s:/wiithememanager.log", getdevicename(1));
 	f = fopen(path, "a");
 	if (!f) {
 		printf("Error writing log\n");
@@ -392,7 +392,7 @@ void findnumpages(void) {
 
 	for(i=0; i<16; i++)
 		outBuffer[i]=0;
-	outBuffer[0]=THEMEWII_VERSION;
+	outBuffer[0]=wiithememanager_VERSION;
 
 	j=16;
 	for(i=0; i<MAXTHEMES; i++){
@@ -420,7 +420,7 @@ void findnumpages(void) {
 	}
 
 	// Save changes to FAT
-	Fat_SaveFile(THEMEWII_PATH THEMEWII_CONFIG_FILE, (void *)&outBuffer, configsize);
+	Fat_SaveFile(wiithememanager_PATH WIITHEMEMANAGER_CONFIG_FILE, (void *)&outBuffer, configsize);
 
 	saveconfig=false;
 }*/
@@ -723,7 +723,7 @@ void __Load_Config(void) {
 	// Ordenar los juegos segun archivo de configuracion
 	char *archivoLeido=NULL;
 
-	ret = Fat_ReadFile(THEMEWII_PATH THEMEWII_CONFIG_FILE, (void *)&archivoLeido);
+	ret = Fat_ReadFile(WIITHEMEMANAGER_PATH WIITHEMEMANAGER_CONFIG_FILE, (void *)&archivoLeido);
 
 	if(ret>0){
 		// Parse config file
@@ -836,9 +836,9 @@ void __Load_Images_From_Page(void) {
 
 			// Load image from FAT
 			if(ThemeList[theme].type == 20)
-				sprintf(tempString,"%s:/config/themewii/imgs/%s.png",getdevicename(thememode), ThemeList[theme].title);
+				sprintf(tempString,"%s:/config/wiithememanager/imgs/%s.png",getdevicename(thememode), ThemeList[theme].title);
 			if(ThemeList[theme].type == 10)
-				sprintf(tempString,"%s:/config/themewii/imgs/%s", getdevicename(thememode), DBlistpng[theme]);
+				sprintf(tempString,"%s:/config/wiithememanager/imgs/%s", getdevicename(thememode), DBlistpng[theme]);
 			ret=Fat_ReadFile(tempString, &imgBuffer);
 			//gprintf("ret from fat read images %d\n",ret);
 			
@@ -868,14 +868,14 @@ void __Load_Skin_From_FAT(void) {
 		"_arrows", "_background", (wideScreen? "_container_wide" : "_container"), "_empty",
 		"_loading", "_numbers"};
 	const u8* defaultTextures[MAX_TEXTURES]={
-		themewii_arrows_png, themewii_background_png, (wideScreen? themewii_container_wide_png : themewii_container_png), themewii_empty_png,
-		themewii_loading_png, themewii_numbers_png};
+		wiithememanager_arrows_png, wiithememanager_background_png, (wideScreen? wiithememanager_container_wide_png : wiithememanager_container_png), wiithememanager_empty_png,
+		wiithememanager_loading_png, wiithememanager_numbers_png};
 
 	int i, ret;
 	char *imgData = NULL;
 
 	for(i=0; i<MAX_TEXTURES; i++){
-		sprintf(tempString, THEMEWII_PATH "themewii%s.png", fileNames[i]);
+		sprintf(tempString, WIITHEMEMANAGER_PATH "wiithememanager%s.png", fileNames[i]);
 		ret = Fat_ReadFile(tempString, (void*)&imgData);
 		if(ret>0){
 			textures[i]=MRC_Load_Texture(imgData);
@@ -1755,9 +1755,9 @@ int __Show_Theme(){
 
 	// Load image from FAT
 	if(ThemeList[selectedtheme].type == 20)
-		sprintf(tempString,"%s:/" THEMEWII_PATH IMAGES_PREFIX "/%s.png",getdevicename(thememode) , thetheme->title);
+		sprintf(tempString,"%s:/" WIITHEMEMANAGER_PATH IMAGES_PREFIX "/%s.png",getdevicename(thememode) , thetheme->title);
 	if(ThemeList[selectedtheme].type == 10)
-		sprintf(tempString,"%s:/config/themewii/imgs/%s" ,getdevicename(thememode),DBlistpng[orden[selectedtheme]]);
+		sprintf(tempString,"%s:/config/wiithememanager/imgs/%s" ,getdevicename(thememode),DBlistpng[orden[selectedtheme]]);
 		
 	//gprintf("tempstring %s \n",tempString);
 	ret=Fat_ReadFile(tempString, &imageBuffer);
@@ -1867,7 +1867,7 @@ int __Home(void) {
 	sprintf(tempString, "IOS_%d v_%d", IOS_GetVersion(), IOS_GetRevision());
 	MRC_Draw_String(250, 380, BLACK, tempString);
 	//MRC_Draw_String(10, 440, 0x505050ff, lang[9+thememode]);
-	//sprintf(tempString, "ThemeWii v_%d - by Scooby74029", THEMEWII_VERSION);
+	//sprintf(tempString, "wiithememanager v_%d - by Scooby74029", wiithememanager_VERSION);
 	//MRC_Draw_String(210, 350, BLACK, tempString);
 
 	// Loop
@@ -1926,7 +1926,7 @@ int __Home(void) {
 	sleep(2);
 	
 	gprintf("thememode = %d \n",thememode);
-	sprintf(tmpstr,"%s:/config/themewii/DBimages",getdevicename(thememode));
+	sprintf(tmpstr,"%s:/config/wiithememanager/DBimages",getdevicename(thememode));
 	if(!Fat_CheckFile(tmpstr))
 		Fat_MakeDir(tmpstr);
 	
@@ -1962,9 +1962,9 @@ int __Home(void) {
 		__Draw_Message(tmpstr,0);
 		sleep(1);
 		__Draw_Loading();
-		sprintf(tempString, "http://bartlesvillok-am.com/downloads/themewii/%s",DBlistpng[i]);
+		sprintf(tempString, "http://bartlesvillok-am.com/downloads/wiithememanager/%s",DBlistpng[i]);
 		//gprintf("tempString(%s) \n",tempString);
-		sprintf(fatpath,"%s:/config/themewii/imgs/%s", getdevicename(thememode), DBlistpng[i]);
+		sprintf(fatpath,"%s:/config/wiithememanager/imgs/%s", getdevicename(thememode), DBlistpng[i]);
 		//gprintf("fatpath(%s) \n",fatpath);
 		__Draw_Loading();
 		if(!Fat_CheckFile(fatpath)){
@@ -1992,7 +1992,7 @@ int __Home(void) {
 			ret = http_get_result(&http_status, &outbuf, &outlen); 
 			
 			if(outlen>64){//suficientes bytes
-				sprintf(fatpath,"%s:/config/themewii/DBimages/%s", getdevicename(thememode), DBlistpng[i]);
+				sprintf(fatpath,"%s:/config/wiithememanager/DBimages/%s", getdevicename(thememode), DBlistpng[i]);
 			//	gprintf("fatpath(%s) \n",fatpath);
 				ret = Fat_SaveFile(fatpath, (void *)&outbuf,outlen);
 				if(ret < 0){
@@ -2279,7 +2279,7 @@ int __Spin_Question(void) {
 	MRC_Draw_Box(450, 425, 160, 25, WHITE - 0x20);
 	MRC_Draw_String(455, 430, BLACK, tempString);
 	//MRC_Draw_String(10, 440, 0x505050ff, lang[9+thememode]);
-	//sprintf(tempString, "ThemeWii v_%d - by Scooby74029", THEMEWII_VERSION);
+	//sprintf(tempString, "wiithememanager v_%d - by Scooby74029", wiithememanager_VERSION);
 	//MRC_Draw_String(210, 350, BLACK, tempString);
 
 	// Loop
@@ -2461,8 +2461,8 @@ int Menu_Loop(){
 
 	// Init MRC graphics
 	MRC_Init();
-	textures[1] = MRC_Load_Texture((void *)themewii_background_png);
-	textures[4] = MRC_Load_Texture((void *)themewii_loading_png);
+	textures[1] = MRC_Load_Texture((void *)wiithememanager_background_png);
+	textures[4] = MRC_Load_Texture((void *)wiithememanager_loading_png);
 	
 	systemmenuversion = GetSysMenuVersion();
 	if(systemmenuversion > 518) systemmenuversion = checkcustomsystemmenuversion();
@@ -2474,7 +2474,7 @@ int Menu_Loop(){
 	else
 		logfile("fat mounted %d \n", thememode);
 	logfile("systemmenuversion(%d) \n", systemmenuversion);
-	sprintf(tmpstr,"%s:/config/themewii", getdevicename(thememode));
+	sprintf(tmpstr,"%s:/config/wiithememanager", getdevicename(thememode));
 	logfile("tmpstr = %s \n", tmpstr);
 	if(!Fat_CheckFile(tmpstr)) {
 		CreateSubfolder(tmpstr);
