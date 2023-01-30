@@ -2,68 +2,60 @@
 #define _MENU_H_
 #include <gctypes.h>
 
+#define MENU_SELECT_THEME   6
+#define MENU_CONFIG        	1
+#define MENU_SORT_GAMES		2
+#define MENU_SHOW_THEME		3
+#define MENU_INSTALL_THEME  4
+#define MENU_HOME			5
+#define MENU_MANAGE_DEVICE	0
+#define MENU_DOWNLOAD		7
+#define MENU_ORIG_THEME     8
+#define MENU_EXIT			9
+#define MENU_EXIT_TO_MENU   10
 
-#define MENU_MANAGE_DEVICE  0
-#define MENU_SELECT_THEME   1
-#define MENU_SHOW_THEME	   2
-#define MENU_Install_Theme  3
-#define Menu_Start_Themeing 4
-#define MENU_MAKE_THEME     5
-#define MENU_ORIG_THEME     6
-#define MENU_HOME		   7
-#define MENU_EXIT		   8
-#define MENU_EXIT_TO_MENU   9
+#define MAXTHEMES		250
+#define KNOWN_SYSTEMMENU_VERSIONS   15
 
-
-#define MAXTHEMES		200
-
-#define THEMEWII_VERSION		2.4
-#define HOTSPOT_LEFT		MAXHOTSPOTS - 2
-#define HOTSPOT_RIGHT		MAXHOTSPOTS - 1
+#define THEMEWII_VERSION		2
+#define HOTSPOT_LEFT		MAXHOTSPOTS-2
+#define HOTSPOT_RIGHT		MAXHOTSPOTS-1
 
 #include "video.h"
 
 
-
-typedef struct _dirent {
-	char WorkingName[65];
-	char DisplayName[65];
-	int type;
-	MRCtex* preview_banner1;
-	MRCtex* preview_banner2;
-	MRCtex* preview_banner3;
-	MRCtex* preview_banner4;
+// themelist buffer & variables
+typedef struct{
+	char* title;
+    MRCtex* banner;
 	u8 *region;
 	u32 version;
-} dirent_t;
+	int type;
+} ModTheme; //32 bytes!
 
-dirent_t *themelist;
+//extern ModTheme ThemeList[MAXTHEMES];
+
 typedef struct{
 	u8 *region;
 	u32 version;
 }CurthemeStats;
 
-CurthemeStats curthemestats;
-
-u32 Current_System_Menu_Version;
-int thememode;
-u32 themecnt;
+//extern CurthemeStats curthemestats;
 
 // Prototypes
-int Menu_Loop(int);
+int Menu_Loop();
 #ifdef __cplusplus
 extern "C" {
 #endif
-const char *getdevicename(int index);
-char *getappname(u32 Versionsys);
-char *getregion(u32 num);
-void spinner();
-char *getsysvernum(u32 num);
-void __Draw_Message(const char* title, int ret);
-int __downloadApp(int downloadonly);
-int Undo_U8(char *Filepath, char* Filesavepath);
-char *getdownloadregion(u32 num);
-s32 getdir(char *, dirent_t **, u32 *);
+const char *getdevicename(int);
+const char *getappname(u32);
+const char *getregion(u32);
+const char *getsysvernum(u32);
+
+int __downloadApp(int);
+
+void __Draw_Message(const char *, int);
+void logfile(const char *, ...);
 #ifdef __cplusplus
 }
 #endif

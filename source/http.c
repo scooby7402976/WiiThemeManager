@@ -46,20 +46,20 @@ s32 tcp_socket (void) {
 
 	s = net_socket (PF_INET, SOCK_STREAM, 0);
 	if (s < 0) {
-		printf("net_socket failed: %ld\n", s);
+		printf("net_socket failed: %d\n", s);
 		return s;
 	}
 
 	res = net_fcntl (s, F_GETFL, 0);
 	if (res < 0) {
-		printf("F_GETFL failed: %ld\n", res);
+		printf("F_GETFL failed: %d\n", res);
 		net_close (s);
 		return res;
 	}
 
 	res = net_fcntl (s, F_SETFL, res | 4);
 	if (res < 0) {
-		printf("F_SETFL failed: %ld\n", res);
+		printf("F_SETFL failed: %d\n", res);
 		net_close (s);
 		return res;
 	}
@@ -112,7 +112,7 @@ s32 tcp_connect (char *host, const u16 port) {
 				continue;
 			}
 
-			printf("net_connect failed: %ld\n", res);
+			printf("net_connect failed: %d\n", res);
 			net_close (s);
 
 			return res;
@@ -148,7 +148,7 @@ char * tcp_readln (const s32 s, const u16 max_length, const s64 start_time,
 		}
 
 		if (res < 0) {
-			printf("tcp_readln failed: %ld\n", res);
+			printf("tcp_readln failed: %d\n", res);
 
 			break;
 		}
@@ -209,7 +209,7 @@ bool tcp_read (const s32 s, u8 **buffer, const u32 length) {
 		}
 
 		if (res < 0) {
-			printf("net_read failed: %ld\n", res);
+			printf("net_read failed: %d\n", res);
 
 			break;
 		}
@@ -259,7 +259,7 @@ bool tcp_write (const s32 s, const u8 *buffer, const u32 length) {
 		}
 
 		if (res < 0) {
-			printf("net_write failed: %ld\n", res);
+			printf("net_write failed: %d\n", res);
 			break;
 		}
 
@@ -341,8 +341,8 @@ bool http_request (const char *url, const u32 max_size) {
 			break;
 		}
 
-		sscanf (line, "HTTP/1.1 %lu", &http_status);
-		sscanf (line, "Content-Length: %lu", &content_length);
+		sscanf (line, "HTTP/1.1 %u", &http_status);
+		sscanf (line, "Content-Length: %u", &content_length);
 
 		free (line);
 		line = NULL;

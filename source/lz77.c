@@ -48,7 +48,7 @@ s32 __decompressLZ77_11(u8 *in, u32 inputLen, u8 **output, u32 *outputLen)
         compressedPos += 0x4;
     }
  
-    printf("Decompressed size : %li\n", decompressedSize);
+    printf("Decompressed size : %i\n", decompressedSize);
  
     out = allocate_memory(decompressedSize);
 	if (out == NULL)
@@ -135,7 +135,7 @@ s32 __decompressLZ77_10(u8 *in, u32 inputLen, u8 **output, u32 *outputLen)
 	 
 	//int compressionType = (packBytes(in[0], in[1], in[2], in[3]) >> 4) & 0xF;
 	 
-	printf("Decompressed size : %li\n", decompressedSize);
+	printf("Decompressed size : %i\n", decompressedSize);
 	 
 	out = allocate_memory(decompressedSize);
 	if (out == NULL)

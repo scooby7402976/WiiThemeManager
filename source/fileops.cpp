@@ -31,7 +31,6 @@
 #include <string.h>
 #include <gccore.h>
 #include <sys/dir.h>
-#include <sys/stat.h>
 #include <dirent.h>
 #include <unistd.h>
 #include <vector>
@@ -63,7 +62,6 @@ extern "C" bool CheckFile(const char * filepath)
     while(dirnoslash[strlen(dirnoslash)-1] == '/') {
         dirnoslash[strlen(dirnoslash)-1] = '\0';
 	}
-	
 	char * notRoot = strrchr(dirnoslash, '/');
 	if(!notRoot)
 	{
@@ -343,10 +341,8 @@ extern "C" int CopyFile(const char * src, const char * dest)
     fclose(source);
     fclose(destination);
 
-	if(sizesrc != done) {
-        return -4;
-	}
-	
+    if(sizesrc != done) return -4;
+
 	return 1;
 }
 

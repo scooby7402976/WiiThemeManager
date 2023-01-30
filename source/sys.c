@@ -1,12 +1,12 @@
 #include <stdio.h>
 #include <ogcsys.h>
-#include "gecko.h"
 #include <ogc/system.h>
 
-#define HBC_HAXX    0x0001000148415858LL
-#define HBC_JODI    0x000100014A4F4449LL
-#define HBC_1_0_7   0x00010001AF1BF516LL      
-
+#define HBC_HAXX    0x0001000148415858
+#define HBC_JODI    0x000100014A4F4449
+#define HBC_1_0_7   0x00010001AF1BF516      
+#define HBC_1_0_8   0x00010001af1bf516
+#define Priiloader  0x0000000100000002
 /* Variables */
 static const char certs_fs[] ATTRIBUTE_ALIGN(32) = "/sys/cert.sys";
 static vu32 *_wiilight_reg = (u32*) 0xCD0000C0;
@@ -22,8 +22,8 @@ void sys_init(void)
 {
 	/* Initialize video subsytem */
 	VIDEO_Init();
-	InitGecko();
-	USBGeckoOutput();
+	//InitGecko();
+	//USBGeckoOutput();
 }
 
 int sys_loadmenu(void)
@@ -37,12 +37,15 @@ int sysHBC()
 {
 	WII_Initialize();
 
-    int ret = WII_LaunchTitle(HBC_1_0_7);
+    int ret = WII_LaunchTitle(HBC_1_0_8);
     if(ret < 0)
-        WII_LaunchTitle(HBC_JODI);
-
-    //Back to system menu if all fails
-    SYS_ResetSystem(SYS_RETURNTOMENU, 0, 0);
+    WII_LaunchTitle(HBC_1_0_7);
+	if(ret < 0)
+    WII_LaunchTitle(HBC_JODI);
+	if(ret < 0)
+    WII_LaunchTitle(HBC_HAXX);
+	if(ret < 0)
+    WII_LaunchTitle(Priiloader);
 	return 0;
 }
 s32 sys_getcerts(signed_blob **certs, u32 *len)

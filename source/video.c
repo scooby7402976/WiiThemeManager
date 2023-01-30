@@ -36,7 +36,8 @@ void Con_Clear(void){
 }
 
 void Con_ClearLine(void){
-	int cols, rows, cnt;
+	s32 cols, rows;
+	u32 cnt;
 
 	printf("\r");
 	fflush(stdout);
@@ -207,79 +208,14 @@ void MRC_Resize_Texture(MRCtex* tex, int newWidth, int newHeight) {
 				((c>>8)&0xff)*(y_diff)*(1-x_diff)   + ((d>>8)&0xff)*(x_diff*y_diff);
 
 			// alpha
-			//alpha = ((a)&0xff)*(1-x_diff)*(1-y_diff) + ((b)&0xff)*(x_diff)*(1-y_diff) +
-			//	((c)&0xff)*(y_diff)*(1-x_diff)   + ((d)&0xff)*(x_diff*y_diff);
+			/*alpha = ((a)&0xff)*(1-x_diff)*(1-y_diff) + ((b)&0xff)*(x_diff)*(1-y_diff) +
+				((c)&0xff)*(y_diff)*(1-x_diff)   + ((d)&0xff)*(x_diff*y_diff);*/
 
 			temp[offset++] = 
 				((((int)red)<<24)&0xff000000) | 
 				((((int)green)<<16)&0xff0000) |
 				((((int)blue)<<8)&0xff00) |
-			//	((((int)alpha))&0xff);
-				0x000000ff ; // hardcode alpha
-		}
-	}
-	free(tex->buffer);
-	tex->buffer=temp;
-	tex->width=newWidth;
-	tex->height=newHeight;
-}
-void MRC_Center_Texture1(MRCtex* tex, int nTiles){
-	tex->centerx=(tex->width/nTiles)/2;
-	tex->centery=tex->height/2;
-}
-
-void MRC_Resize_Texture1(MRCtex* tex, int newWidth, int newHeight) {
-	int i, j;
-	int w=tex->width;
-	int h=tex->height;
-	if(newWidth==w && newHeight==h)
-		return;
-	int* pixels=tex->buffer;
-	int a, b, c, d, x, y, index ;
-	float x_ratio = ((float)(w-1))/newWidth;
-	float y_ratio = ((float)(h-1))/newHeight;
-	float x_diff, y_diff, red, green, blue;
-	//float alpha;
-	int offset = 0;
-
-	int* temp=allocate_memory(sizeof(int)*newWidth*newHeight);
-
-	for(i=0;i<newHeight;i++){
-		for(j=0;j<newWidth;j++){
-			x = (int)(x_ratio * j) ;
-			y = (int)(y_ratio * i) ;
-			x_diff = (x_ratio * j) - x ;
-			y_diff = (y_ratio * i) - y ;
-			index = (y*w+x) ;                
-			a = pixels[index] ;
-			b = pixels[index+1] ;
-			c = pixels[index+w] ;
-			d = pixels[index+w+1] ;
-
-			// red element
-			// Yr = Ar(1-w)(1-h) + Br(w)(1-h) + Cr(h)(1-w) + Dr(wh)
-			red = ((a>>24)&0xff)*(1-x_diff)*(1-y_diff) + ((b>>24)&0xff)*(x_diff)*(1-y_diff) +
-				((c>>24)&0xff)*(y_diff)*(1-x_diff)   + ((d>>24)&0xff)*(x_diff*y_diff);
-
-			// green element
-			// Yg = Ag(1-w)(1-h) + Bg(w)(1-h) + Cg(h)(1-w) + Dg(wh)
-			green = ((a>>16)&0xff)*(1-x_diff)*(1-y_diff) + ((b>>16)&0xff)*(x_diff)*(1-y_diff) +
-				((c>>16)&0xff)*(y_diff)*(1-x_diff)   + ((d>>16)&0xff)*(x_diff*y_diff);
-
-			// blue element
-			// Yb = Ab(1-w)(1-h) + Bb(w)(1-h) + Cb(h)(1-w) + Db(wh)
-			blue = ((a>>8)&0xff)*(1-x_diff)*(1-y_diff) + ((b>>8)&0xff)*(x_diff)*(1-y_diff) +
-				((c>>8)&0xff)*(y_diff)*(1-x_diff)   + ((d>>8)&0xff)*(x_diff*y_diff);
-
-			// alpha
-			//alpha = ((a)&0xff)*(1-x_diff)*(1-y_diff) + ((b)&0xff)*(x_diff)*(1-y_diff) +
-			//	((c)&0xff)*(y_diff)*(1-x_diff)   + ((d)&0xff)*(x_diff*y_diff);
-
-			temp[offset++] = 
-				((((int)red)<<24)&0xff000000) | 
-				((((int)green)<<16)&0xff0000) |
-				((((int)blue)<<8)&0xff00) |
-			//	((((int)alpha))&0xff);
+				//((((int)alpha))&0xff);
 				0x000000ff ; // hardcode alpha
 		}
 	}
@@ -289,70 +225,7 @@ void MRC_Resize_Texture1(MRCtex* tex, int newWidth, int newHeight) {
 	tex->height=newHeight;
 }
 
-void MRC_Center_Texture2(MRCtex* tex2, int nTiles2){
-	tex2->centerx=(tex2->width/nTiles2)/2;
-	tex2->centery=tex2->height/2;
-}
-void MRC_Resize_Texture2(MRCtex* tex2, int newWidth2, int newHeight2) {
-	int i, j;
-	int w=tex2->width;
-	int h=tex2->height;
-	if(newWidth2==w && newHeight2==h)
-		return;
-	int* pixels=tex2->buffer;
-	int a, b, c, d, x, y, index ;
-	float x_ratio = ((float)(w-1))/newWidth2;
-	float y_ratio = ((float)(h-1))/newHeight2;
-	float x_diff, y_diff, red, green, blue;
-	//float alpha;
-	int offset = 0;
 
-	int* temp=allocate_memory(sizeof(int)*newWidth2*newHeight2);
-
-	for(i=0;i<newHeight2;i++){
-		for(j=0;j<newWidth2;j++){
-			x = (int)(x_ratio * j) ;
-			y = (int)(y_ratio * i) ;
-			x_diff = (x_ratio * j) - x ;
-			y_diff = (y_ratio * i) - y ;
-			index = (y*w+x) ;                
-			a = pixels[index] ;
-			b = pixels[index+1] ;
-			c = pixels[index+w] ;
-			d = pixels[index+w+1] ;
-
-			// red element
-			// Yr = Ar(1-w)(1-h) + Br(w)(1-h) + Cr(h)(1-w) + Dr(wh)
-			red = ((a>>24)&0xff)*(1-x_diff)*(1-y_diff) + ((b>>24)&0xff)*(x_diff)*(1-y_diff) +
-				((c>>24)&0xff)*(y_diff)*(1-x_diff)   + ((d>>24)&0xff)*(x_diff*y_diff);
-
-			// green element
-			// Yg = Ag(1-w)(1-h) + Bg(w)(1-h) + Cg(h)(1-w) + Dg(wh)
-			green = ((a>>16)&0xff)*(1-x_diff)*(1-y_diff) + ((b>>16)&0xff)*(x_diff)*(1-y_diff) +
-				((c>>16)&0xff)*(y_diff)*(1-x_diff)   + ((d>>16)&0xff)*(x_diff*y_diff);
-
-			// blue element
-			// Yb = Ab(1-w)(1-h) + Bb(w)(1-h) + Cb(h)(1-w) + Db(wh)
-			blue = ((a>>8)&0xff)*(1-x_diff)*(1-y_diff) + ((b>>8)&0xff)*(x_diff)*(1-y_diff) +
-				((c>>8)&0xff)*(y_diff)*(1-x_diff)   + ((d>>8)&0xff)*(x_diff*y_diff);
-
-			// alpha
-			//alpha = ((a)&0xff)*(1-x_diff)*(1-y_diff) + ((b)&0xff)*(x_diff)*(1-y_diff) +
-			//	((c)&0xff)*(y_diff)*(1-x_diff)   + ((d)&0xff)*(x_diff*y_diff);
-
-			temp[offset++] = 
-				((((int)red)<<24)&0xff000000) | 
-				((((int)green)<<16)&0xff0000) |
-				((((int)blue)<<8)&0xff00) |
-			//	((((int)alpha))&0xff);
-				0x000000ff ; // hardcode alpha
-		}
-	}
-	free(tex2->buffer);
-	tex2->buffer=temp;
-	tex2->width=newWidth2;
-	tex2->height=newHeight2;
-}
 
 
 #define MASK_W 32

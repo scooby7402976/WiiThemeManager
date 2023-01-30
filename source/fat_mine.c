@@ -13,8 +13,9 @@
 #include <sdcard/wiisd_io.h>
 #include "usbstorage.h"
 
-extern const DISC_INTERFACE __io_usb2storage;
-extern bool Neek;
+
+
+//extern static u32 Dbase;
 
 const DISC_INTERFACE* interface;
 /*typedef struct {
@@ -31,21 +32,15 @@ s32 Fat_Mount(int dev){
 	if(dev==SD)
 		interface=&__io_wiisd;
 	else if(dev==USB)
-		interface=&__io_wiiums;
+		interface=&__io_usbstorage;
 	else
 		return -1;
 	
 
 	// Initialize SDHC interface
 	ret = interface->startup();
-	if (ret <= 0) {
-		interface = &__io_usbstorage;
-		ret = interface->startup();
-		if (ret <= 0) {
-			return -2;
-		}
-	}
-		
+	if(!ret)
+		return -2;
 
 	// Mount device
 	if(dev==SD){
@@ -61,15 +56,12 @@ s32 Fat_Mount(int dev){
 	return 0;
 }
 
-s32 Fat_Unmount(int dev){
+s32 Fat_Unmount(void){
 	s32 ret;
 
 	// Unmount device
-	if(dev == 0)
-		fatUnmount(DEV_MOUNT_SD);
-	else
-		fatUnmount(DEV_MOUNT_USB);
-	
+	fatUnmount(DEV_MOUNT_SD);
+	fatUnmount(DEV_MOUNT_USB);
 	// Shutdown SDHC interface
 	ret = interface->shutdown();
 	if (!ret)
@@ -88,10 +80,8 @@ s32 Fat_ReadFile(const char *filepath, void **outbuf){
 
 	/* Open file */
 	fp = fopen(filepath, "rb");
-	if (!fp) {
-		ret = -1;
+	if (!fp)
 		goto err;
-	}
 
 	/* Get filesize */
 	fseek(fp, 0, SEEK_END);
@@ -100,16 +90,14 @@ s32 Fat_ReadFile(const char *filepath, void **outbuf){
 
 	/* Allocate memory */
 	buffer = malloc(filelen);
-	if (!buffer) {
-		ret = -2;
+	if (!buffer)
 		goto err;
-	}
+
 	/* Read file */
 	ret = fread(buffer, 1, filelen, fp);
-	if (ret != filelen) {
-		ret = -3;
+	if (ret != filelen)
 		goto err;
-	}
+
 	/* Set pointer */
 	*outbuf = buffer;
 
@@ -119,6 +107,9 @@ err:
 	/* Free memory */
 	if (buffer)
 		free(buffer);
+
+	/* Error code */
+	ret = -1;
 
 out:
 	/* Close file */
@@ -159,18 +150,7 @@ bool Fat_CheckFile(const char *filepath){
 
 	return true;
 }
-bool Fat_CheckDir(const char *dirname){
-	DIR *dir     = NULL;
 
-	/* Open file */
-	dir=opendir(dirname);
-	if (dir) {
-		closedir(dir);
-		return true;
-	}
-
-	return false;
-}
 s32 Fat_SaveFile(const char *filepath, void **outbuf, u32 outlen){
 	s32 ret;
 	FILE *fd;

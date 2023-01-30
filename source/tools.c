@@ -23,7 +23,6 @@
 
 #include "tools.h"
 
-
 void *allocate_memory(u32 size){
 	return memalign(32, (size+31)&(~31) );
 }
@@ -76,6 +75,69 @@ u32 Pad_WaitButtons(void){
 
 	}
 }*/
+
+s32 __FileCmp(const void *a, const void *b){
+	dirent_t *hdr1 = (dirent_t *)a;
+	dirent_t *hdr2 = (dirent_t *)b;
+	
+	if (hdr1->type == hdr2->type){
+		return strcmp(hdr1->name, hdr2->name);
+	}else{
+		return 0;
+	}
+}
+
+s32 getdir(char *path, dirent_t **ent, u32 *cnt){
+	s32 res;
+	u32 num = 0;
+
+	int i, j, k;
+	
+	res = ISFS_ReadDir(path, NULL, &num);
+	if(res != ISFS_OK){
+		printf("Error: could not get dir entry count! (result: %d)\n", res);
+		return -1;
+	}
+
+	char ebuf[ISFS_MAXPATH + 1];
+
+	char *nbuf = (char *)allocate_memory((ISFS_MAXPATH + 1) * num);
+	if(nbuf == NULL){
+		printf("ERROR: could not allocate buffer for name list!\n");
+		return -2;
+	}
+
+	res = ISFS_ReadDir(path, nbuf, &num);
+	DCFlushRange(nbuf,13*num); //quick fix for cache problems?
+	if(res != ISFS_OK){
+		printf("ERROR: could not get name list! (result: %d)\n", res);
+		free(nbuf);
+		return -3;
+	}
+	
+	*cnt = num;
+	
+	*ent = allocate_memory(sizeof(dirent_t) * num);
+	if(*ent==NULL){
+		printf("Error: could not allocate buffer\n");
+		free(nbuf);
+		return -4;
+	}
+
+	for(i = 0, k = 0; i < num; i++){	    
+		for(j = 0; nbuf[k] != 0; j++, k++)
+			ebuf[j] = nbuf[k];
+		ebuf[j] = 0;
+		k++;
+
+		strcpy((*ent)[i].name, ebuf);
+	}
+	
+	qsort(*ent, *cnt, sizeof(dirent_t), __FileCmp);
+	
+	free(nbuf);
+	return 0;
+}
 
 s32 read_file(char *filepath, u8 **buffer, u32 *filesize){
 	s32 Fd;
@@ -183,7 +245,7 @@ s32 identify(u64 titleid, u32 *ios){
 	printf("Reading TMD...");
 	fflush(stdout);
 	
-	sprintf(filepath, "/title/%08lx/%08lx/content/title.tmd", TITLE_UPPER(titleid), TITLE_LOWER(titleid));
+	sprintf(filepath, "/title/%08x/%08x/content/title.tmd", TITLE_UPPER(titleid), TITLE_LOWER(titleid));
 	ret = read_file(filepath, &tmdBuffer, &tmdSize);
 	if (ret < 0)
 	{

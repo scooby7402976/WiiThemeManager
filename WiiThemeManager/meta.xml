@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<app version="1">
+	<name>Wii Theme Manager</name>
+	<version>1.0</version>
+        <release_date>20230106</release_date>
+	<coder>Scooby74029</coder>
+	<short_description>Wii System Menu Theme Manager. </short_description>
+	<long_description>Wii System Menu Theme Downloader .
+Wii System Menu Theme Installer .</long_description>
+	<ahb_access/>
+</app>
