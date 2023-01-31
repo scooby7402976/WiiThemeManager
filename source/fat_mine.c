@@ -28,10 +28,10 @@ const DISC_INTERFACE* interface;
 bool Fat_Mount(int dev){
 	s32 ret;
 
-	if(dev==SD)
-		interface=&__io_wiisd;
-	else if(dev==USB)
-		interface=&__io_usbstorage;
+	if(dev == SD)
+		interface = &__io_wiisd;
+	else if(dev == USB)
+		interface = &__io_usbstorage;
 	else
 		return 0;
 	
@@ -42,12 +42,12 @@ bool Fat_Mount(int dev){
 		return 0;
 
 	// Mount device
-	if(dev==SD){
+	if(dev == SD){
 		ret = fatMountSimple(DEV_MOUNT_SD, interface);
 		if (!ret)
 			return 0;
 	}
-	if(dev==USB){
+	if(dev == USB){
 		ret = fatMountSimple(DEV_MOUNT_USB, interface);
 		if (!ret)
 			return 0;

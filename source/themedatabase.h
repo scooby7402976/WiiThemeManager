@@ -2,12 +2,16 @@
 #define THEMEDATABASE_H
 
 char *DBlistpng[MAXTHEMES] = {
+	"animalcrossing.png",
 	"batmanv1.png",
 	"blackmage.png",
 	"blackpirate.png",
 	"bleach.png",
+	"bowser.png",
+	"broly.png",
 	"car.png",
 	"codegeass.png",
+	"constantine.png",
 	"darkwiioriginal.png",
 	"darkwiiblue.png",
 	"darkwiigreen.png",
@@ -27,6 +31,7 @@ char *DBlistpng[MAXTHEMES] = {
 	"madworld.png",
 	"majorasmask.png",
 	"mario.png",
+	"mariokart.png",
 	"matrix.png",
 	"matrixreloaded.png",
 	"metroid.png",
@@ -35,18 +40,36 @@ char *DBlistpng[MAXTHEMES] = {
 	"nightmareb4xmas.png",
 	"oldschoolnintendo.png",
 	"psychedelic.png",
-	"ratchetandclank.png"
+	"ratchetandclank.png",
+	"rockband2.png",
+	"shadowthehedgehog.png",
+	"Spiderman.png",
+	"superherosquad.png",
+	"supersonic.png",
+	"thesimpsons.png",
+	"thundercats.png",
+	"tmnt.png",
+	"tombraider.png",
+	"trueblood.png",
+	"winxpos.png",
+	"wolverine.png",
+	"zelda.png"
 };
 
 
 char *DBThemelist[MAXTHEMES] =
 {
+	"Animal Crossing",
 	"Batman v1",
 	"Black Mage",
 	"Black Pirate",
 	"Bleach",
+	"Bowser",
+	"Broly",
 	"Car",
+	"Cars"
 	"Code Geass",
+	"Constantine",
 	"Dark Wii Original",
 	"Dark Wii Blue",
 	"Dark Wii Green",
@@ -66,6 +89,7 @@ char *DBThemelist[MAXTHEMES] =
 	"Mad World",
 	"Majoras Mask",
 	"Mario",
+	"Mario Kart",
 	"Matrix",
 	"Matrix Reloaded",
 	"Metroid",
@@ -77,10 +101,11 @@ char *DBThemelist[MAXTHEMES] =
 	"Ratchet and Clank",
 	"Rockband 2",
 	"Shadow The Hedgehog",
-	"The Simpsons",
 	"Spiderman",
 	"Super Hero Squad",
 	"Super Sonic",
+	"The Simpsons",
+	"Thunder Cats",
 	"TMNT",
 	"Tomb Raider",
 	"True Blood",
@@ -92,12 +117,17 @@ char *DBThemelist[MAXTHEMES] =
 
 char *DBThemelistDL[MAXTHEMES] =
 {
+	"animal_crossing.mym",
 	"batman_v1.mym",
 	"black_mage.mym",
 	"black_pirate.mym",
 	"bleach.mym",
+	"bowser.mym",
+	"broly.mym",
 	"car.mym",
+	"cars.mym",
 	"code_geass.mym",
+	"constantine.mym",
 	"dark_wii_original.mym",
 	"dark_wii_blue",
 	"dark_wii_green",
@@ -117,6 +147,7 @@ char *DBThemelistDL[MAXTHEMES] =
 	"mad_world.mym",
 	"majoras_mask.mym",
 	"mario.mym",
+	"mario_kart.mym",
 	"matrix.mym",
 	"matrix_reloaded.mym",
 	"metroid.mym",
@@ -125,7 +156,20 @@ char *DBThemelistDL[MAXTHEMES] =
 	"nightmare_b4_xmas.mym",
 	"old_school_nintendo.mym",
 	"psychedelic.mym",
-	"ratchet_and_clank.mym"
+	"ratchet_and_clank.mym",
+	"rockband_2.mym",
+	"shadow_the_hedgehog.mym",
+	"Spiderman.mym",
+	"super_hero_squad.mym",
+	"super_sonic.mym",
+	"the_simpsons.mym",
+	"thunder_cats.mym",
+	"tmnt.mym",
+	"tomb_raider.mym",
+	"true_blood.mym",
+	"win_xp_os.mym",
+	"wolverine.mym",
+	"zelda.mym"
 };
 
 
