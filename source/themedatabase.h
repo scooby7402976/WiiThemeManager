@@ -10,6 +10,7 @@ char *DBlistpng[MAXTHEMES] = {
 	"bowser.png",
 	"broly.png",
 	"car.png",
+	"cars.png",
 	"codegeass.png",
 	"constantine.png",
 	"darkwiioriginal.png",
@@ -67,7 +68,7 @@ char *DBThemelist[MAXTHEMES] =
 	"Bowser",
 	"Broly",
 	"Car",
-	"Cars"
+	"Cars",
 	"Code Geass",
 	"Constantine",
 	"Dark Wii Original",
@@ -126,8 +127,8 @@ char *DBThemelistDL[MAXTHEMES] =
 	"broly.mym",
 	"car.mym",
 	"cars.mym",
-	"code_geass.mym",
-	"constantine.mym",
+	"code_geass.mym", 
+	"constantine.mym", // 10
 	"dark_wii_original.mym",
 	"dark_wii_blue",
 	"dark_wii_green",

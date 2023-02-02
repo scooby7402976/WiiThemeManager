@@ -17,10 +17,10 @@
 #define MAXTHEMES		250
 #define KNOWN_SYSTEMMENU_VERSIONS   15
 
-#define THEMEWII_VERSION		2
+#define WIITHEMEMANAGER_VERSION		1
 #define HOTSPOT_LEFT		MAXHOTSPOTS-2
 #define HOTSPOT_RIGHT		MAXHOTSPOTS-1
-#define debug                   0
+#define debug                   1
 #include "video.h"
 
 
@@ -53,6 +53,8 @@ const char *getregion(u32);
 const char *getsysvernum(u32);
 
 int __downloadApp(int);
+
+bool checkforpriiloader();
 
 void __Draw_Loading(void);
 void __Draw_Message(const char *, int);

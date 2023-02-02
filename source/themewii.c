@@ -15,7 +15,7 @@
 void __exception_setreload(int);
 
 int main(int argc, char **argv){
-	int ahbprot = -1, iospatch = 0, ios;
+	int ahbprot = -1, iospatch = 0, ios, ret;
 	//bool foundneek = false;
 	__exception_setreload(5);
 	/*// Parse parameters
@@ -51,7 +51,16 @@ int main(int argc, char **argv){
 	// Initialize system
 	Video_Init();
 	Wpad_Init();
-
+	
+	ret = ISFS_Initialize();
+	if(debug) logfile("ret isfs init = %d\n", ret);
+	if(!checkforpriiloader()) {
+		
+		if(debug) logfile("\t\tPriiloader not detected ! Press any button to exit .");
+		Wpad_WaitButtons();
+		exit(0);
+	}
+	
 	// Menu loop
 	Menu_Loop();
 
