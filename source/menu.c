@@ -79,18 +79,14 @@ static MRCtex* textures[MAX_TEXTURES];
 #define RED     0xFF0000FF
 
 static s16* orden;
-//static u32 Dbase = 0;
 static int spinselected = -1;
 static int thememode = 0;
 static u32 themecnt = 0;
 u8 commonkey[16] = { 0xeb, 0xe4, 0x2a, 0x22, 0x5e, 0x85, 0x93, 0xe4, 0x48,
-     0xd9, 0xc5, 0x45, 0x73, 0x81, 0xaa, 0xf7
-  };
-
-// Variables for wiithememanager
+    0xd9, 0xc5, 0x45, 0x73, 0x81, 0xaa, 0xf7
+};
 static u16 pages, page, maxPages;
 static int selectedtheme = 0, movingGame = -1;
-//static const char** lang;
 static int loadingAnim = 0;
 static bool wideScreen = false;
 static bool saveconfig = false;
@@ -99,20 +95,18 @@ ModTheme ThemeList[MAXTHEMES];
 u32 systemmenuversion;
 bool foundneek;
 CurthemeStats curthemestats;
-//bool dbase;
-//static FILE *fp;
-//static char *outdir;
 dirent_t *ent = NULL;
-//Fatfile *themefile = NULL;
 dirent_t *nandfilelist = NULL;
 extern GXRModeObj *vmode;
 extern u32* framebuffer;
+bool needloading = false;
 bool availList = true;
+bool netconnection = false;
 u32 known_Versions[KNOWN_SYSTEMMENU_VERSIONS] = {416, 417, 418, 448, 449, 450, 454, 480, 481, 482, 486, 512, 513, 514, 518};
 char *regions[KNOWN_SYSTEMMENU_VERSIONS] = {"J", "U", "E", "J", "U", "E", "K", "J", "U", "E", "K", "J", "U", "E", "K"};
 char *knownappfilenames[KNOWN_SYSTEMMENU_VERSIONS] = {"00000070.app", "00000072.app", "00000075.app", "00000078.app", "0000007b.app", "0000007e.app", "00000081.app", "00000084.app", "00000087.app", "0000008a.app", "0000008d.app", "00000094.app", "00000097.app", "0000009a.app", "0000009d.app"};
 char *appfilename[2] = { "Cetk", "Tmd" };
-
+char *updatedownloadcount = NULL;
 const u8 COLS[]={3, 4};
 #define ROWS 3
 const u8 FIRSTCOL[]={136, 110}; // 136 112
@@ -123,16 +117,23 @@ const u8 ANCHOIMAGEN[]={154, 116}; //116
 #define ALTOIMAGEN 90
 
 #define ALIGN32(x) (((x) + 31) & ~31)
-
+char *retrieve_downloadcount();
 const char *getregion(u32 num);
 const char *getsysvernum(u32 num);
 const char *getdevicename(int index);
 int __Spin_Question(void);
 int __Select_Device(void);
 void __Load_Config(void);
-//int __DownloadDBfile(char *ThemeFile);
-//int __DownloadDBpng();
 
+bool checknetconnection() {
+	int ret = net_init();
+
+	if(ret == 0) {
+		net_deinit();
+		return 1;
+	}
+	return 0;
+}
 bool checkforpriiloader() {
 	dirent_t *priiloaderfiles = NULL;
 	u32 nandfilecnt;
@@ -628,7 +629,7 @@ u32 filelist_retrieve(bool avail_list) {
     //s32 start = 0;
 	u32 fu, ff, cnt = 0;
 	struct dirent *entry = NULL;
-	
+	needloading = true;
 	//dirent_t *neeklist = NULL;
 	//u32 neekcount;
 	if(avail_list) {
@@ -638,8 +639,10 @@ u32 filelist_retrieve(bool avail_list) {
 			cnt += 1;
 		}
 		for(ff = 0; ff < cnt; ff++){
+			if(needloading) __Draw_Loading();
 			ThemeList[ff].title = DBThemelist[ff];
 			ThemeList[ff].type = 10;
+			//if(netconnection) ThemeList[ff].downloadcount = retrieve_downloadcount();
 			//gprintf("theme =%s .type%d %d \n",ThemeList[ff].title, ThemeList[ff].type,ff);
 		}
 		if(debug) logfile("cnt[%u]\n", cnt);
@@ -698,6 +701,7 @@ u32 filelist_retrieve(bool avail_list) {
 	while((entry = readdir(dir))) // If we get EOF, the expression is 0 and
                                      // the loop stops. 
     {
+		if(needloading) __Draw_Loading();
 		if(strncmp(entry->d_name, ".", 1) != 0 && strncmp(entry->d_name, "..", 2) != 0){
 			strcpy(ent[cnt].name, entry->d_name);//, sizeof(entry->d_name));
 			ThemeList[cnt].title = ent[cnt].name;
@@ -709,7 +713,7 @@ u32 filelist_retrieve(bool avail_list) {
     }
 	
 end:	
-
+	needloading = false;
     return cnt;
 }
 
@@ -727,7 +731,7 @@ void __Load_Config(void) {
 	// Ordenar los juegos segun archivo de configuracion
 	char *archivoLeido=NULL;
 
-	ret = Fat_ReadFile(WIITHEMEMANAGER_PATH WIITHEMEMANAGER_CONFIG_FILE, (void *)&archivoLeido);
+	ret = Fat_ReadFile(WIITHEMEMANAGER_PATH WIITHEMEMANAGER_CONFIG_FILE, (void *)&archivoLeido, 0);
 
 	if(ret>0){
 		// Parse config file
@@ -851,7 +855,7 @@ void __Load_Images_From_Page(void) {
 				sprintf(tempString,"%s:/config/wiithememanager/imgs/%s.png",getdevicename(thememode), ThemeList[theme].title);
 			if(ThemeList[theme].type == 10)
 				sprintf(tempString,"%s:/config/wiithememanager/imgs/%s", getdevicename(thememode), DBlistpng[theme]);
-			ret = Fat_ReadFile(tempString, &imgBuffer);
+			ret = Fat_ReadFile(tempString, &imgBuffer, 1);
 			//gprintf("ret from fat read images %d\n",ret);
 			
 			// Decode image
@@ -888,7 +892,7 @@ void __Load_Skin_From_FAT(void) {
 
 	for(i=0; i<MAX_TEXTURES; i++){
 		sprintf(tempString, WIITHEMEMANAGER_PATH "wiithememanager%s.png", fileNames[i]);
-		ret = Fat_ReadFile(tempString, (void*)&imgData);
+		ret = Fat_ReadFile(tempString, (void*)&imgData, 0);
 		if(ret>0){
 			textures[i]=MRC_Load_Texture(imgData);
 			free(imgData);
@@ -1737,13 +1741,52 @@ end:
 }
 
 
+char *retrieve_downloadcount() {
+	char *count = "0";
+	int ret, retries;
+	char sitepath[512];
+	const char *siteUrl = "http://bartlesvilleok-am.com/wiithemer/wii/index.php?action=";
+	u32 outlen = 0;
+	u32 http_status = 0;
+	u32 Maxsize = 4294967295;
+	u8* outbuf = NULL;
+	logfile("in retreive downloadcount\n");
+	
+	for(retries = 0; retries < 5; ++retries) {
+		ret = net_init();
+		
+		if(ret == 0){
+			//netconnection = true;
+			break;
+		}
+	}
+	
+	sprintf(sitepath, "%s%s&themetocheck=%s", siteUrl, "getdownloadcount", DBThemelist_nospaces[selectedtheme]);
+	if(debug) logfile("sitepath[%s]\n", sitepath);
+	ret = http_request(sitepath, Maxsize);
+	if(ret != 0 ) {
+		ret = http_get_result(&http_status, &outbuf, &outlen);
+		if(ret != 0 ) {
+			char output[outlen];
+			if(outlen > 0 && http_status == 200) {
+				memcpy(output, outbuf, outlen);
+				output[outlen] = 0;
+				if(debug) logfile("%s\n", output);
+				//strcpy(count, "downloads ");
+				strcpy(count, output);
+				return count;
+			}
+		}
+	}
+	return count;
+}
 #define PROJECTION_HEIGHT 64
 int __Show_Theme(){
 	void* imageBuffer;
 	MRCtex *themeImage, *projection;
 	int i, j, ret;
 	char *c, *r, a;
-	ModTheme *thetheme = &ThemeList[orden[selectedtheme]];
+	char *count = retrieve_downloadcount();
 	
 	// BLACK SCREEN
 	/*a=160;
@@ -1752,7 +1795,7 @@ int __Show_Theme(){
 			a++;
 		MRC_Draw_Box(0, i, 640, 1, a);
 	}*/
-
+	//
 	
 	// ANOTHER SCREEN FADE TYPE
 	a=200;
@@ -1762,7 +1805,7 @@ int __Show_Theme(){
 		MRC_Draw_Box(0, i, 640, 1, 0x20202000+a);
 	}
 
-
+	ModTheme *thetheme = &ThemeList[orden[selectedtheme]];
 	// Load image from FAT
 	if(ThemeList[selectedtheme].type == 20)
 		sprintf(tempString,"%s:/" WIITHEMEMANAGER_PATH IMAGES_PREFIX "/%s.png",getdevicename(thememode) , thetheme->title);
@@ -1770,7 +1813,7 @@ int __Show_Theme(){
 		sprintf(tempString,"%s:/config/wiithememanager/imgs/%s" ,getdevicename(thememode),DBlistpng[orden[selectedtheme]]);
 		
 	//gprintf("tempstring %s \n",tempString);
-	ret = Fat_ReadFile(tempString, &imageBuffer);
+	ret = Fat_ReadFile(tempString, &imageBuffer, needloading);
 	// Decode image
 	if(ret > 0){
 		themeImage = MRC_Load_Texture(imageBuffer);
@@ -1804,18 +1847,20 @@ int __Show_Theme(){
 	
 		MRC_Draw_Texture(40, 40, themeImage);
 		//MRC_Draw_Texture(175, 275, projection);
-		MRC_Draw_String((640-strlen(thetheme->title))/2, 400, WHITE, thetheme->title);
+		MRC_Draw_String(((640-strlen(thetheme->title))/2), 400, WHITE, thetheme->title);
+		sprintf(tempString, "%s%s", "Downloads ", count);
+		if(netconnection) MRC_Draw_String( 500, 400, WHITE, tempString);
 		//MRC_Draw_String(30, 330, WHITE, "By ");
 		sprintf(tempString, "%s", (availList == 1 ? "[A] - Download Theme" : "[A] - Install Theme"));
 		MRC_Draw_String(40, 400, WHITE, tempString);
-		MRC_Draw_String(560, 400, WHITE, "[B] - Back");
+		MRC_Draw_String(40, 420, WHITE, "[B] - Back");
 		MRC_Free_Texture(themeImage);
 		MRC_Free_Texture(projection);
 	}
 	else{
 		sprintf(tempString, "%s", (availList == 1 ? "[A] - Download Theme" : "[A] - Install Theme"));
 		MRC_Draw_String(30, 360, WHITE, tempString);
-		MRC_Draw_String(30, 390, WHITE, "[B]-Back");
+		MRC_Draw_String(30, 390, WHITE, "[B] - Back");
 		//MRC_Draw_String(30, 360, WHITE, "By ");
 		MRC_Draw_String((640-strlen(thetheme->title)*8)/2, 250, WHITE, thetheme->title);
 	}
@@ -2312,6 +2357,9 @@ int __download_Theme() {
 	char sessionId[64];
 	char themedownloadlink[128];
 	char themeposition[64];
+	char sessionIdstr[128];
+	char downloads_update[32];
+	//char download_return_count[32];
 	const char *siteUrl = "http://bartlesvilleok-am.com/wiithemer/wii/index.php?action=";
 	const char *actions[4] = { "prepDir", "copymymfiles", "downloadappfile", "buildtheme" }; // To Do add option to update wii download count and save on server 
 	int retries, ret = -2, i = 0;
@@ -2345,6 +2393,7 @@ int __download_Theme() {
 	sprintf(version, "&version=%i", systemmenuversion);
 	sprintf(spinoption, "&spinselected=%s", spinoptions(spinselected));
 	sprintf(themeposition, "&selected=%d", theme_selected);
+	
 	u32 outlen = 0;
 	u32 http_status = 0;
 	u32 Maxsize = 4294967295;
@@ -2361,15 +2410,15 @@ int __download_Theme() {
 				__Draw_Message(tmpstr, 0);
 			break;
 			case 1:
-				sprintf(sitepath, "%s%s%s%s%s%s", siteUrl, actions[i], mymfile, spinoption, "&sessionId=", sessionId);
+				sprintf(sitepath, "%s%s%s%s%s", siteUrl, actions[i], mymfile, spinoption, sessionIdstr);
 			break;
 			case 2:
-				sprintf(sitepath, "%s%s%s%s%s", siteUrl, actions[i], version, "&sessionId=", sessionId);
+				sprintf(sitepath, "%s%s%s%s", siteUrl, actions[i], version, sessionIdstr);
 				sprintf(tmpstr, "Downloading %s from System Menu %s_%s .", getappname(systemmenuversion), getsysvernum(systemmenuversion), getregion(systemmenuversion));
 				__Draw_Message(tmpstr, 0);
 			break;
 			case 3:
-				sprintf(sitepath, "%s%s%s%s%s%s%s%s", siteUrl, actions[i], mymfile, version, spinoption, "&sessionId=", sessionId, themeposition);
+				sprintf(sitepath, "%s%s%s%s%s%s%s", siteUrl, actions[i], mymfile, version, spinoption, sessionIdstr, themeposition);
 				sprintf(tmpstr, "Server Building Theme .");
 				__Draw_Message(tmpstr, 0);
 			break;
@@ -2388,6 +2437,7 @@ int __download_Theme() {
 						case 0:
 							strcpy(sessionId, output);
 							if(debug) logfile("id[%s\n", sessionId);
+							sprintf(sessionIdstr, "&sessionId=%s", sessionId);
 							sleep(1);
 						break;
 						case 1:
@@ -2429,7 +2479,7 @@ int __download_Theme() {
 			}
 			if(debug) logfile("savename = %s", savename);
 			sprintf(savepath,"%s:/themes/%s", getdevicename(thememode), savename);
-			__Draw_Loading();
+			//__Draw_Loading();
 			
 			ret = Fat_SaveFile(savepath, (void *)&outbuf, outlen);
 			sprintf(tmpstr, "Downloading Theme Complete . Choose 'Install Theme' at next screen .");
@@ -2440,9 +2490,13 @@ int __download_Theme() {
 	
 	if(Fat_CheckFile(savepath)) {
 		if(debug) logfile("\ndelete server session dir here .\n");
-		sprintf(sitepath, "%s%s%s", siteUrl, "removesessionDir&sessionId=", sessionId);
+		sprintf(sitepath, "%s%s%s", siteUrl, "removesessionDir", sessionIdstr);
 		if(debug) logfile("sitepath[%s]\n", sitepath);
 		ret = http_request(sitepath, Maxsize);
+		sprintf(downloads_update, "&downloadcount=%d", 1);
+		sprintf(sitepath, "%s%s%s&themetoupdate=%s", siteUrl, "updatedownloadcount", downloads_update, DBThemelist_nospaces[orden[selectedtheme]]);
+		ret = http_request(sitepath, Maxsize);
+		if(debug) logfile("sitepath[%s] ret[%d]\n", sitepath, ret);
 	}
 	net_deinit();
 	
@@ -2477,6 +2531,7 @@ int Menu_Loop(){
 		CreateSubfolder(tmpstr);
 	}
 	
+	logfile("connect = %d\n", netconnection);
 	themecnt = filelist_retrieve(availList);
 	// Load skin images
 	MRC_Free_Texture(textures[1]);
@@ -2487,6 +2542,7 @@ int Menu_Loop(){
 	__Load_Config();
 	
 	ret = MENU_SELECT_THEME;
+	netconnection = checknetconnection();
 	for(;;){
 		if(ret == MENU_SELECT_THEME)
 			ret = __Select_Theme();

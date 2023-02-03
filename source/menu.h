@@ -31,6 +31,7 @@ typedef struct{
 	u8 *region;
 	u32 version;
 	int type;
+	char *downloadcount;
 } ModTheme; //32 bytes!
 
 //extern ModTheme ThemeList[MAXTHEMES];

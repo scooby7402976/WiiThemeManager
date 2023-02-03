@@ -12,6 +12,7 @@
 #include "fat_mine.h"
 #include <sdcard/wiisd_io.h>
 #include "usbstorage.h"
+#include "menu.h"
 
 
 //extern static u32 Dbase;
@@ -69,7 +70,7 @@ s32 Fat_Unmount(void){
 	return 0;
 }
 
-s32 Fat_ReadFile(const char *filepath, void **outbuf){
+s32 Fat_ReadFile(const char *filepath, void **outbuf, bool needloading){
 	FILE *fp     = NULL;
 	void *buffer = NULL;
 
@@ -91,7 +92,7 @@ s32 Fat_ReadFile(const char *filepath, void **outbuf){
 	buffer = malloc(filelen);
 	if (!buffer)
 		goto err;
-
+	if(needloading) __Draw_Loading();
 	/* Read file */
 	ret = fread(buffer, 1, filelen, fp);
 	if (ret != filelen)
@@ -138,11 +139,11 @@ int Fat_MakeDir(const char *dirname){
 }
 
 bool Fat_CheckFile(const char *filepath){
-	FILE *fp     = NULL;
+	FILE *fp = NULL;
 
 	/* Open file */
 	fp = fopen(filepath, "rb");
-	if (!fp)
+	if(!fp)
 		return false;
 
 	fclose(fp);
@@ -155,10 +156,12 @@ s32 Fat_SaveFile(const char *filepath, void **outbuf, u32 outlen){
 	FILE *fd;
 	fd = fopen(filepath, "wb");
 	if(fd){
+		__Draw_Loading();
 		ret=fwrite(*outbuf, 1, outlen, fd);
 		fclose(fd);
 		//printf(" FWRITE: %d ",ret);
-	}else{
+	}
+	else{
 		ret=-1;
 	}
 

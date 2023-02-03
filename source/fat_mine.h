@@ -7,7 +7,7 @@
 /* Prototypes */
 bool Fat_Mount(int);
 s32 Fat_Unmount(void);
-s32 Fat_ReadFile(const char *, void **);
+s32 Fat_ReadFile(const char *, void **, bool);
 int Fat_MakeDir(const char *);
 #ifdef __cplusplus
 extern "C" {
