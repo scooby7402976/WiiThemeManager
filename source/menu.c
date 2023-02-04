@@ -722,7 +722,7 @@ void __Load_Config(void) {
 	int ret, i, j, k;
 	s16* posiciones=allocate_memory(sizeof(u16)*themecnt);
 
-	orden=allocate_memory(sizeof(u16)*MAXTHEMES);
+	orden=allocate_memory(sizeof(u16)*themecnt);
 
 	for(i=0; i<themecnt; i++)
 		posiciones[i]=-1;
@@ -835,15 +835,6 @@ void __Load_Images_From_Page(void) {
 	//#endif
 
 	max = COLS[wideScreen]*ROWS;
-	if(thememode == 0) {
-		if(!Fat_Mount(1)) {
-			if(!Fat_Mount(2)) {
-				__Draw_Message("Sd Card and Usb not Detected .", 0);
-				sleep(3);
-				return;
-			}
-		}
-	}
 
 	for(i = 0; i < max; i++){
 		theme = orden[max*pages+i];
@@ -890,14 +881,16 @@ void __Load_Skin_From_FAT(void) {
 	int i, ret;
 	char *imgData = NULL;
 
-	for(i=0; i<MAX_TEXTURES; i++){
-		sprintf(tempString, WIITHEMEMANAGER_PATH "wiithememanager%s.png", fileNames[i]);
+	for(i = 0; i < MAX_TEXTURES; i++){
+		sprintf(tempString, "%s:/config/wiithememanager/wiithememanager%s.png", getdevicename(thememode), fileNames[i]);
 		ret = Fat_ReadFile(tempString, (void*)&imgData, 0);
-		if(ret>0){
-			textures[i]=MRC_Load_Texture(imgData);
+		if(ret>0) {
+			textures[i] = MRC_Load_Texture(imgData);
 			free(imgData);
-		}else{
-			textures[i]=MRC_Load_Texture((void *)defaultTextures[i]);
+		}
+		else {
+			textures[i] = MRC_Load_Texture((void *)defaultTextures[i]);
+			
 		}
 	}
 
@@ -911,8 +904,6 @@ void __Load_Skin_From_FAT(void) {
 	MRC_Center_Texture(textures[TEX_CONTAINER], 2);
 	MRC_Center_Texture(textures[TEX_EMPTY], 1);
 }
-
-
 /* Constant */
 #define BLOCK_SIZE	0x1000
 #define CHUNKS 1000000
@@ -2088,108 +2079,6 @@ const char *getdevicename(int index) {
 		default: return "ukn";
 	}
 }
-/*bool Comparefolders(const char *src, const char *dest){
-    if(!src || !dest)
-        return false;
-
-    char *folder1 = strchr(src, ':');
-    char *folder2 = strchr(dest, ':');
-
-	if(!folder1 || !folder2)
-        return false;
-
-	int position1 = folder1-src+1;
-	int position2 = folder2-dest+1;
-
-	char temp1[50];
-	char temp2[50];
-
-	snprintf(temp1, position1, "%s", src);
-	snprintf(temp2, position2, "%s", dest);
-
-    if(strcasecmp(temp1, temp2) == 0)
-        return true;
-
-    return false;
-}
-
-
-void write_file(void* data, size_t size, char* name){
-	FILE *out;
-	out = fopen(name, "wb");
-	fwrite(data, 1, size, out);
-	fclose(out);	
-}
-int __Select_Database_save(void){
-	int i, hotSpot, hotSpotPrev, ret;
-	bool repaint=true;
-	
-	const char *langs[4] = {
-		"Sd Card",
-		"Usb Device",
-		"Neek NAND",
-	};
-	
-	// Create/restore hotspots
-	Wpad_CleanHotSpots();
-	for(i=0; i<3; i++){
-		Wpad_AddHotSpot(i,
-			HOME_BUTTON_X,
-			180+i*(HOME_BUTTON_HEIGHT+HOME_BUTTON_SEPARATION),
-			HOME_BUTTON_WIDTH,
-			HOME_BUTTON_HEIGHT,
-			(i==0? 3 : i-1),
-			(i==3? 0 : i+1),
-			i, i
-		);
-	}
-
-	// Background
-	MRC_Draw_Texture(0, 0, textures[TEX_BACKGROUND]);
-
-	MRC_Draw_String(95, 100, BLACK, "Select Theme Database Save Device :");
-	//MRC_Draw_String(95, 130, BLACK, "Theme Database file will be saved here also .");
-	MRC_Draw_String(95, 360, BLACK, "[A]-Select");//[HOME/start]-Options/Exit");
-	
-	sprintf(tempString, "IOS_%d v_%d", IOS_GetVersion(), IOS_GetRevision());
-	MRC_Draw_String(95, 430, WHITE, tempString);
-	
-	sprintf(tempString, "System_Menu v%s_%s", getsysvernum(systemmenuversion), getregion(systemmenuversion));
-	MRC_Draw_String(420, 430, WHITE, tempString);
-
-	// Loop
-	hotSpot=hotSpotPrev=-1;
-
-	ret=0;
-	for(;;){
-		hotSpot=Wpad_Scan();
-
-		// If hot spot changed
-		if((hotSpot!=hotSpotPrev && hotSpot<4) || repaint){
-			hotSpotPrev=hotSpot;
-
-			for(i=0; i<3; i++){
-				__Draw_Button(i, langs[i], hotSpot==i);
-			}
-			repaint=false;
-		}
-		MRC_Draw_Cursor(Wpad_GetWiimoteX(), Wpad_GetWiimoteY(), 0);
-
-		if(((WPAD_ButtonsDown(WPAD_CHAN_0) & WPAD_BUTTON_A) || (PAD_ButtonsDown(0) & PAD_BUTTON_A))){
-			if(hotSpot==0)
-				ret=1;
-			else if(hotSpot==1)
-				ret=2;
-			else if(hotSpot==2)
-				ret=3;
-			Dbase = ret;
-			gprintf("Dbase(%d) \n", Dbase);
-			break;
-		}
-		
-	}
-	return ret;
-}*/
 #define DEVICE_X			        200
 #define DEVICE_Y			        170
 #define DEVICE_WIDTH		        224
@@ -2515,6 +2404,7 @@ int Menu_Loop(){
 	MRC_Init();
 	textures[1] = MRC_Load_Texture((void *)wiithememanager_background_png);
 	textures[4] = MRC_Load_Texture((void *)wiithememanager_loading_png);
+	netconnection = checknetconnection();
 	
 	systemmenuversion = GetSysMenuVersion();
 	if(systemmenuversion > 518) systemmenuversion = checkcustomsystemmenuversion();
@@ -2542,7 +2432,7 @@ int Menu_Loop(){
 	__Load_Config();
 	
 	ret = MENU_SELECT_THEME;
-	netconnection = checknetconnection();
+	
 	for(;;){
 		if(ret == MENU_SELECT_THEME)
 			ret = __Select_Theme();
