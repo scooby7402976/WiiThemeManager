@@ -3,7 +3,9 @@
 
 char *DBlistpng[MAXTHEMES] = {
 	"animalcrossing.png",
+	"bakugan.png",
 	"batmanv1.png",
+	"batmanv2.png",
 	"blackmage.png",
 	"blackpirate.png",
 	"bleach.png",
@@ -22,7 +24,15 @@ char *DBlistpng[MAXTHEMES] = {
 	"darkwiired.png",
 	"darkwiiwhite.png",
 	"darkwiiyellow.png",
+	"dethklok.png",
+	"discord.png",
+	"dragonballzv1.png",
+	"dragonballzv2.png",
+	"drwho.png",
+	"earthbound.png",
 	"evildead.png",
+	"excitebots.png",
+	"eyes.png",
 	"ghostbusters.png",
 	"jurassicpark3.png",
 	"kingdomhearts.png",
@@ -58,10 +68,11 @@ char *DBlistpng[MAXTHEMES] = {
 };
 
 
-char *DBThemelist[MAXTHEMES] =
-{
+char *DBThemelist[MAXTHEMES] = {
 	"Animal Crossing",
+	"Bakugan",
 	"Batman v1",
+	"Batman v2",
 	"Black Mage",
 	"Black Pirate",
 	"Bleach",
@@ -80,7 +91,15 @@ char *DBThemelist[MAXTHEMES] =
 	"Dark Wii Red",
 	"Dark Wii White",
 	"Dark Wii Yellow",
+	"Deth Klok",
+	"Discord",
+	"Dragon Ball Z v1",
+	"Dragon Ball Z v2",
+	"Dr Who",
+	"Earth Bound",
 	"Evil Dead",
+	"Excite Bots",
+	"Eyes",
 	"Ghost Busters",
 	"Jurassic Park 3",
 	"Kingdom Hearts",
@@ -114,10 +133,11 @@ char *DBThemelist[MAXTHEMES] =
 	"Wolverine",
 	"Zelda"
 };
-char *DBThemelist_nospaces[MAXTHEMES] =
-{
+char *DBThemelist_nospaces[MAXTHEMES] = {
 	"AnimalCrossing",
+	"Bakugan",
 	"Batmanv1",
+	"Batmanv2",
 	"BlackMage",
 	"BlackPirate",
 	"Bleach",
@@ -136,7 +156,15 @@ char *DBThemelist_nospaces[MAXTHEMES] =
 	"DarkWiiRed",
 	"DarkWiiWhite",
 	"DarkWiiYellow",
+	"DethKlok",
+	"Discord",
+	"DragonBallZv1",
+	"DragonBallZv2",
+	"DrWho",
+	"EarthBound",
 	"EvilDead",
+	"ExciteBots",
+	"Eyes",
 	"GhostBusters",
 	"JurassicPark3",
 	"KingdomHearts",
@@ -171,10 +199,11 @@ char *DBThemelist_nospaces[MAXTHEMES] =
 	"Zelda"
 };
 
-char *DBThemelistDL[MAXTHEMES] =
-{
+char *DBThemelistDL[MAXTHEMES] = {
 	"animal_crossing.mym",
+	"bakugan.mym",
 	"batman_v1.mym",
+	"batman_v2.mym",
 	"black_mage.mym",
 	"black_pirate.mym",
 	"bleach.mym",
@@ -193,7 +222,15 @@ char *DBThemelistDL[MAXTHEMES] =
 	"dark_wii_red",
 	"dark_wii_white",
 	"dark_wii_yellow",
+	"deth_klok.mym",
+	"discord.mym",
+	"dragon_ball_z_v1.mym",
+	"dragon_ball_z_v2.mym",
+	"dr_who.mym",
+	"earth_bound.mym",
 	"evil_dead.mym",
+	"excite_bots.mym",
+	"eyes.mym",
 	"ghost_busters.mym",
 	"jurassic_park_3.mym",
 	"kingdom_hearts.mym",

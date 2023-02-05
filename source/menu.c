@@ -85,11 +85,13 @@ static u32 themecnt = 0;
 u8 commonkey[16] = { 0xeb, 0xe4, 0x2a, 0x22, 0x5e, 0x85, 0x93, 0xe4, 0x48,
     0xd9, 0xc5, 0x45, 0x73, 0x81, 0xaa, 0xf7
 };
-static u16 pages, page, maxPages;
+static u16 page, maxPages = 1;
 static int selectedtheme = 0, movingGame = -1;
 static int loadingAnim = 0;
 static bool wideScreen = false;
 static bool saveconfig = false;
+static bool priiloadercheck = false;
+static bool pageLoaded[50];
 static char tempString[256];
 ModTheme ThemeList[MAXTHEMES];
 u32 systemmenuversion;
@@ -102,6 +104,7 @@ extern u32* framebuffer;
 bool needloading = false;
 bool availList = true;
 bool netconnection = false;
+bool priiloaderackknowledgement = false;
 u32 known_Versions[KNOWN_SYSTEMMENU_VERSIONS] = {416, 417, 418, 448, 449, 450, 454, 480, 481, 482, 486, 512, 513, 514, 518};
 char *regions[KNOWN_SYSTEMMENU_VERSIONS] = {"J", "U", "E", "J", "U", "E", "K", "J", "U", "E", "K", "J", "U", "E", "K"};
 char *knownappfilenames[KNOWN_SYSTEMMENU_VERSIONS] = {"00000070.app", "00000072.app", "00000075.app", "00000078.app", "0000007b.app", "0000007e.app", "00000081.app", "00000084.app", "00000087.app", "0000008a.app", "0000008d.app", "00000094.app", "00000097.app", "0000009a.app", "0000009d.app"};
@@ -193,7 +196,7 @@ void __Draw_Page(int selected) {
 	MRC_Draw_Box(450, 425, 160, 25, WHITE - 0x20);
 	MRC_Draw_String(455, 430, BLACK, tempString);
 	
-	if(themecnt == 0 || pages == 0){
+	if(themecnt == 0 || !pageLoaded[page]){
 		return;
 	}
 
@@ -310,22 +313,22 @@ void __Draw_Message(const char* title, int ret) {
 #define QUESTION_BUTTON_X			90
 #define QUESTION_BUTTON_Y			240
 #define QUESTION_BUTTON_SEPARATION	20
-#define QUESTION_BUTTON_WIDTH		150
+#define QUESTION_BUTTON_WIDTH		175
 #define QUESTION_BUTTON_HEIGHT		40
-int __Question_Window(const char* title, const char* text, const char* a1, const char* a2, const char* a3) {
+int __Question_Window(const char* title, const char* text, const char* a1, const char* a2) {
 	int i, hotSpot, hotSpotPrev;
 	int ret=0, repaint=true;
 
 	// Create/restore hotspots
 	Wpad_CleanHotSpots();
-	for(i=0; i<3; i++)
+	for(i=0; i<2; i++)
 		Wpad_AddHotSpot(i,
 			QUESTION_BUTTON_X+i*(QUESTION_BUTTON_WIDTH+QUESTION_BUTTON_SEPARATION),
 			QUESTION_BUTTON_Y,
 			QUESTION_BUTTON_WIDTH,
 			QUESTION_BUTTON_HEIGHT,
-			(i == 0? 2 : i - 1),
-			(i == 3? 0 : i + 1),
+			(i == -1? 1 : i - 1),
+			(i == 2? 0 : i + 1),
 			i, i
 		);
 
@@ -341,12 +344,11 @@ int __Question_Window(const char* title, const char* text, const char* a1, const
 		hotSpot = Wpad_Scan();
 
 		// If hot spot changed
-		if((hotSpot!=hotSpotPrev && hotSpot<4) || repaint){
+		if((hotSpot!=hotSpotPrev && hotSpot<2) || repaint){
 			hotSpotPrev = hotSpot;
 
 			__Draw_Button(0, a1, hotSpot==0);
 			__Draw_Button(1, a2, hotSpot==1);
-			__Draw_Button(2, a3, hotSpot==2);
 			repaint=false;
 		}
 		MRC_Draw_Cursor(Wpad_GetWiimoteX(), Wpad_GetWiimoteY(), 0);
@@ -355,13 +357,11 @@ int __Question_Window(const char* title, const char* text, const char* a1, const
 			if(hotSpot==0)
 				ret=1;
 			if(hotSpot==1)
-				ret=2;
-			if(hotSpot==2)
-				ret=3;
+				ret=0;
 			break;
 		}
 	}
-	if(debug) logfile("ret spin question [%i]\n", ret);
+	if(debug) logfile("ret question [%i]\n", ret);
 	return ret;
 }
 
@@ -369,7 +369,7 @@ int __Question_Window(const char* title, const char* text, const char* a1, const
 void findnumpages(void) {
 	int i;
 	maxPages = 0;
-	for(i = themecnt-1; i > -1; i--){
+	for(i = MAXTHEMES - 1; i > -1; i--){
 		if(orden[i] != EMPTY){
 			break;
 		}
@@ -722,7 +722,7 @@ void __Load_Config(void) {
 	int ret, i, j, k;
 	s16* posiciones=allocate_memory(sizeof(u16)*themecnt);
 
-	orden=allocate_memory(sizeof(u16)*themecnt);
+	orden=allocate_memory(sizeof(u16)*MAXTHEMES);
 
 	for(i=0; i<themecnt; i++)
 		posiciones[i]=-1;
@@ -790,13 +790,14 @@ void __Load_Config(void) {
 
 	selectedtheme=0;
 	page=0;
-	pages=0;
 	findnumpages();
 }
 
+/*
 void __Free_Channel_Images(void) {
 	int i;
-
+	int imagesPerScreen = COLS[wideScreen]*ROWS;
+	
 	for(i=0; i<MAXTHEMES; i++){
 		//printf("%d: %d\n", i, orden[i]);
 
@@ -809,8 +810,27 @@ void __Free_Channel_Images(void) {
 
 	pages=0;
 	page=0;
-}
+}*/
+void __Free_Channel_Images(void){
+	int i;
+	int imagesPerScreen = COLS[wideScreen]*ROWS;
 
+	for(i=0; i<maxPages*imagesPerScreen; i++){
+		//printf("%d: %d\n", i, orden[i]);
+
+		if(!pageLoaded[i/imagesPerScreen]){
+			i += imagesPerScreen;
+			continue;
+		}
+		if(orden[i]!=EMPTY){
+			MRC_Free_Texture(ThemeList[orden[i]].banner);
+		}
+	}
+
+	for (i=0; i<maxPages; i++)
+		pageLoaded[i] = FALSE;
+	page=0;
+}
 void __Finish_ALL_GFX(void) {
 	int i;
 
@@ -828,16 +848,16 @@ void __Finish_ALL_GFX(void) {
 
 void __Load_Images_From_Page(void) {
 	void *imgBuffer=NULL;
-	int i, max, ret, theme;
+	int i, max, pos, ret, theme;
 
 	//#ifdef DEBUG_MODE
 	//gprintf("Loading images...\n");
 	//#endif
 
 	max = COLS[wideScreen]*ROWS;
-
+	pos = max*page;
 	for(i = 0; i < max; i++){
-		theme = orden[max*pages+i];
+		theme = orden[pos+i];
 		if(theme != EMPTY){
 			__Draw_Loading();
 
@@ -864,7 +884,7 @@ void __Load_Images_From_Page(void) {
 		}
 		//MRC_Draw_Texture(64, 440, configuracionJuegos[theme].banner);
 	}
-	pages++;
+	pageLoaded[page] = TRUE;
 }
 
 
@@ -1238,7 +1258,12 @@ int __install_Theme() {  // install.app .csm file
 	//gprintf("install theme start! \n");
 	char filepath[1024];
 	FILE *fp = NULL;
-	
+	if(!priiloadercheck) {
+		const char *nopriiloader = "Priiloader not detected . Installs Disabled .";
+		__Draw_Message(nopriiloader, 0);
+		sleep(3);
+		return MENU_SELECT_THEME;
+	}
 	char *start = memalign(32,256);
 	sprintf(start,"Starting Custom Theme Installation !");
 	__Draw_Message(start,0);
@@ -1246,6 +1271,7 @@ int __install_Theme() {  // install.app .csm file
 	sprintf(filepath, "%s:/themes/%s", getdevicename(thememode), ThemeList[orden[selectedtheme]].title);
 	if(debug) logfile("filepath (%s) \n",filepath);
 	curthemestats.version = GetSysMenuVersion();
+	if(curthemestats.version > 518) curthemestats.version = checkcustomsystemmenuversion();
 	retreivecurrentthemeregion(curthemestats.version);
 	if(debug) logfile("cur theme .version(%d) .region(%c) \n",curthemestats.version, curthemestats.region);
 	ThemeList[orden[selectedtheme]].version = findinstallthemeversion(ThemeList[orden[selectedtheme]].title);
@@ -1311,9 +1337,8 @@ int __Select_Theme(void){
 	hotSpot = hotSpotPrev = -1;
 
 	// Load images from actual page
-	if(pages < page+1) {
+	if(!pageLoaded[page])
 		__Load_Images_From_Page();
-	}
 	__Draw_Page(-1);
 
 
@@ -1373,7 +1398,7 @@ int __Select_Theme(void){
 			((WPAD_ButtonsDown(WPAD_CHAN_0) & WPAD_BUTTON_A) || (PAD_ButtonsDown(0) \
 			& PAD_BUTTON_A))))){
 				//gprintf("page = %d maxpages = %d pages = %d\n",page,maxPages,pages);
-				if (page == 0)
+				if(page == 0)
 					page = maxPages;
 				
 				page -= 1;
@@ -1777,7 +1802,7 @@ int __Show_Theme(){
 	MRCtex *themeImage, *projection;
 	int i, j, ret;
 	char *c, *r, a;
-	char *count = retrieve_downloadcount();
+	char *count = NULL;
 	
 	// BLACK SCREEN
 	/*a=160;
@@ -1787,7 +1812,8 @@ int __Show_Theme(){
 		MRC_Draw_Box(0, i, 640, 1, a);
 	}*/
 	//
-	
+	if(availList)
+		count = retrieve_downloadcount();
 	// ANOTHER SCREEN FADE TYPE
 	a=200;
 	for(i=0; i<480; i++){
@@ -1840,7 +1866,8 @@ int __Show_Theme(){
 		//MRC_Draw_Texture(175, 275, projection);
 		MRC_Draw_String(((640-strlen(thetheme->title))/2), 400, WHITE, thetheme->title);
 		sprintf(tempString, "%s%s", "Downloads ", count);
-		if(netconnection) MRC_Draw_String( 500, 400, WHITE, tempString);
+		if(availList)
+			if(netconnection) MRC_Draw_String( 500, 400, WHITE, tempString);
 		//MRC_Draw_String(30, 330, WHITE, "By ");
 		sprintf(tempString, "%s", (availList == 1 ? "[A] - Download Theme" : "[A] - Install Theme"));
 		MRC_Draw_String(40, 400, WHITE, tempString);
@@ -1852,7 +1879,9 @@ int __Show_Theme(){
 		sprintf(tempString, "%s", (availList == 1 ? "[A] - Download Theme" : "[A] - Install Theme"));
 		MRC_Draw_String(30, 360, WHITE, tempString);
 		MRC_Draw_String(30, 390, WHITE, "[B] - Back");
-		//MRC_Draw_String(30, 360, WHITE, "By ");
+		sprintf(tempString, "%s%s", "Downloads ", count);
+		if(availList)
+			if(netconnection) MRC_Draw_String( 500, 400, WHITE, tempString);
 		MRC_Draw_String((640-strlen(thetheme->title)*8)/2, 250, WHITE, thetheme->title);
 	}
 	MRC_Render_Screen();
@@ -2171,7 +2200,7 @@ const char *spinoptions(int input) {
 	return rtn;
 }
 #define SPIN_BUTTON_X			210
-#define SPIN_BUTTON_Y			170
+#define SPIN_BUTTON_Y			200
 #define SPIN_BUTTON_WIDTH		220
 #define SPIN_BUTTON_HEIGHT		40
 #define SPIN_BUTTON_SEPARATION	10
@@ -2274,7 +2303,7 @@ int __download_Theme() {
 	__Draw_Message(tmpstr, 0);
 	sleep(1);
 	
-	if((orden[selectedtheme] >= 12) && (orden[selectedtheme] <= 19)) {
+	if((orden[selectedtheme] >= 14) && (orden[selectedtheme] <= 21)) {
 		sprintf(mymfile, "&mymfile=%s%s.mym", DBThemelistDL[orden[selectedtheme]], getregion(systemmenuversion));
 	}
 	else sprintf(mymfile, "&mymfile=%s", DBThemelistDL[orden[selectedtheme]]);
@@ -2395,7 +2424,10 @@ int Menu_Loop(){
 	
 	int ret = 0;
 	char tmpstr[256];
-
+	/*if(debug) {
+		Con_Init(CONSOLE_X, CONSOLE_Y, CONSOLE_WIDTH, CONSOLE_HEIGHT);
+		printf("Wii Theme Manager Debugging Started .\n");
+	}*/
 	// Check if widescreen
 	if(CONF_GetAspectRatio() == CONF_ASPECT_16_9)
 		wideScreen = true;
@@ -2405,7 +2437,7 @@ int Menu_Loop(){
 	textures[1] = MRC_Load_Texture((void *)wiithememanager_background_png);
 	textures[4] = MRC_Load_Texture((void *)wiithememanager_loading_png);
 	netconnection = checknetconnection();
-	
+	priiloadercheck = checkforpriiloader();
 	systemmenuversion = GetSysMenuVersion();
 	if(systemmenuversion > 518) systemmenuversion = checkcustomsystemmenuversion();
 	if(!thememode) thememode = __Select_Device();
@@ -2420,8 +2452,13 @@ int Menu_Loop(){
 	if(!Fat_CheckFile(tmpstr)) {
 		CreateSubfolder(tmpstr);
 	}
-	
+	sprintf(tmpstr,"%s:/themes", getdevicename(thememode));
+	if(debug) logfile("tmpstr = %s \n", tmpstr);
+	if(!Fat_CheckFile(tmpstr)) {
+		CreateSubfolder(tmpstr);
+	}
 	logfile("connect = %d\n", netconnection);
+	logfile("priiloadercheck = %d\n", priiloadercheck);
 	themecnt = filelist_retrieve(availList);
 	// Load skin images
 	MRC_Free_Texture(textures[1]);
@@ -2432,6 +2469,11 @@ int Menu_Loop(){
 	__Load_Config();
 	
 	ret = MENU_SELECT_THEME;
+	
+	if(!priiloadercheck) {
+		priiloaderackknowledgement = __Question_Window("Priiloader not Detected", "Theme Installs are disabled . ", "Continue", "Exit");
+		if(!priiloaderackknowledgement) ret = MENU_EXIT;
+	}
 	
 	for(;;){
 		if(ret == MENU_SELECT_THEME)
@@ -2447,6 +2489,7 @@ int Menu_Loop(){
 			}
 			else
 				if(debug) logfile("fat mounted %d availlist[%d]\n", thememode, availList);
+			__Free_Channel_Images();
 			themecnt = filelist_retrieve(availList);
 			__Load_Config();
 			ret = MENU_SELECT_THEME;

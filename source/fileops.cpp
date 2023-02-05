@@ -215,7 +215,7 @@ extern "C" bool CreateSubfolder(const char * fullpath)
     if(!result)
         return false;
 
-    if (mkdir(dirnoslash, 0777) == -1)
+    if (mkdir(dirnoslash, S_IREAD | S_IWRITE) == -1)
     {
         return false;
     }
