@@ -1761,7 +1761,7 @@ char *retrieve_downloadcount() {
 	char *count = "0";
 	int ret, retries;
 	char sitepath[512];
-	const char *siteUrl = "http://bartlesvilleok-am.com/wiithemer/wii/index.php?action=";
+	const char *siteUrl = "http://wiithemer.org/wii/index.php?action=";
 	u32 outlen = 0;
 	u32 http_status = 0;
 	u32 Maxsize = 4294967295;
@@ -2278,7 +2278,7 @@ int __download_Theme() {
 	char sessionIdstr[128];
 	char downloads_update[32];
 	//char download_return_count[32];
-	const char *siteUrl = "http://bartlesvilleok-am.com/wiithemer/wii/index.php?action=";
+	const char *siteUrl = "http://wiithemer.org/wii/index.php?action=";
 	const char *actions[4] = { "prepDir", "copymymfiles", "downloadappfile", "buildtheme" }; // To Do add option to update wii download count and save on server 
 	int retries, ret = -2, i = 0;
 	int theme_selected = orden[selectedtheme];

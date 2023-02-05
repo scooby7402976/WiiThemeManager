@@ -33,7 +33,17 @@ char *DBlistpng[MAXTHEMES] = {
 	"evildead.png",
 	"excitebots.png",
 	"eyes.png",
+	"familyguy.png",
+	"fantasy.png",
+	"fightclub.png",
+	"finalfantasy7.png",
+	"futurama.png",
+	"gaara.png",
 	"ghostbusters.png",
+	"goldensun.png",
+	"handdrawn.png",
+	"hellokitty.png",
+	"heros.png",
 	"jurassicpark3.png",
 	"kingdomhearts.png",
 	"leopardOS.png",
@@ -100,7 +110,17 @@ char *DBThemelist[MAXTHEMES] = {
 	"Evil Dead",
 	"Excite Bots",
 	"Eyes",
+	"Family Guy",
+	"Fantasy",
+	"Fight Club",
+	"Final Fantasy 7",
+	"Futurama",
+	"Gaara",
 	"Ghost Busters",
+	"Golden Sun",
+	"Hand Drawn",
+	"Hello Kitty",
+	"Heros",
 	"Jurassic Park 3",
 	"Kingdom Hearts",
 	"Leopard OS",
@@ -165,7 +185,17 @@ char *DBThemelist_nospaces[MAXTHEMES] = {
 	"EvilDead",
 	"ExciteBots",
 	"Eyes",
+	"FamilyGuy",
+	"Fantasy",
+	"FightClub",
+	"FinalFantasy7",
+	"Futurama",
+	"Gaara",
 	"GhostBusters",
+	"GoldenSun",
+	"HandDrawn",
+	"HelloKitty",
+	"Heros",
 	"JurassicPark3",
 	"KingdomHearts",
 	"LeopardOS",
@@ -231,7 +261,17 @@ char *DBThemelistDL[MAXTHEMES] = {
 	"evil_dead.mym",
 	"excite_bots.mym",
 	"eyes.mym",
+	"family_guy.mym",
+	"fantasy.mym",
+	"fight_club.mym",
+	"final_fantasy_7.mym",
+	"futurama.mym",
+	"gaara.mym",
 	"ghost_busters.mym",
+	"golden_sun.mym",
+	"hand_drawn.mym",
+	"hello_kitty.mym",
+	"heros.mym",
 	"jurassic_park_3.mym",
 	"kingdom_hearts.mym",
 	"leopard_os.mym",
@@ -264,27 +304,4 @@ char *DBThemelistDL[MAXTHEMES] = {
 	"wolverine.mym",
 	"zelda.mym"
 };
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #endif // THEMEDATABASE_H
