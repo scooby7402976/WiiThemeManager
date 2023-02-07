@@ -7,7 +7,7 @@
 - checks for themes folder - makes it if not found .
 
 - uses the old mighty channels gui
-- Starts in download theme mode press home button for options
+- Starts in options Menu
 * Options
 - Device Menu - load device sd/usb - in download mode this is the save device
 - Install Theme - will list all themes for install 
