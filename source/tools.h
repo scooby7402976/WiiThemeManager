@@ -28,10 +28,11 @@ typedef struct _dirent{
 #define TITLE_LOWER(x)		((u32)(x))
 #define TITLE_ID(x,y)		(((u64)(x) << 32) | (y))
 
-void *allocate_memory(u32 size);
+void *allocate_memory(u32);
+s32 __FileCmp(const void *, const void *);
 s32 getdir(char *, dirent_t **, u32 *);
-s32 read_file(char *filepath, u8 **buffer, u32 *filesize);
-s32 identify(u64 titleid, u32 *ios);
+s32 read_file(char *, u8 **, u32 *);
+s32 identify(u64, u32 *);
 //u32 Pad_WaitButtons(void);
 
 

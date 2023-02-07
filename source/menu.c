@@ -42,7 +42,7 @@
 #include "sys.h"
 #include "themedatabase.h"
 #include "http.h"
-#include "fileops.h"
+//#include "fileops.h"
 
 //Menu images
 #include "wiithememanager_arrows_png.h"
@@ -271,7 +271,14 @@ void __Draw_Window(int width, int height, const char* title) {
 	sprintf(tempString, "IOS_%d v_%d", IOS_GetVersion(), IOS_GetRevision());
 	MRC_Draw_Box(25, 425, 120, 25, WHITE - 0x20);
 	MRC_Draw_String(30, 430, BLACK, tempString);
-	
+	if(availList) {
+		MRC_Draw_Box(285, 425, 60, 25, WHITE - 0x20);
+		MRC_Draw_String(290, 430, BLACK, "Mode D");
+	}
+	else {
+		MRC_Draw_Box(285, 425, 60, 25, WHITE - 0x20);
+		MRC_Draw_String(290, 430, BLACK, "Mode I");
+	}
 	sprintf(tempString, "System_Menu v%s_%s", getsysvernum(systemmenuversion), getregion(systemmenuversion));
 	MRC_Draw_Box(450, 425, 160, 25, WHITE - 0x20);
 	MRC_Draw_String(455, 430, BLACK, tempString);
@@ -312,9 +319,9 @@ void __Draw_Message(const char* title, int ret) {
 }
 #define QUESTION_BUTTON_X			90
 #define QUESTION_BUTTON_Y			240
-#define QUESTION_BUTTON_SEPARATION	20
+#define QUESTION_BUTTON_SEPARATION	30
 #define QUESTION_BUTTON_WIDTH		175
-#define QUESTION_BUTTON_HEIGHT		40
+#define QUESTION_BUTTON_HEIGHT		30
 int __Question_Window(const char* title, const char* text, const char* a1, const char* a2) {
 	int i, hotSpot, hotSpotPrev;
 	int ret=0, repaint=true;
@@ -327,7 +334,7 @@ int __Question_Window(const char* title, const char* text, const char* a1, const
 			QUESTION_BUTTON_Y,
 			QUESTION_BUTTON_WIDTH,
 			QUESTION_BUTTON_HEIGHT,
-			(i == -1? 1 : i - 1),
+			(i == 0? 1 : i - 1),
 			(i == 2? 0 : i + 1),
 			i, i
 		);
@@ -625,7 +632,7 @@ u32 filelist_retrieve(bool avail_list) {
     //char dirpath2[ISFS_MAXPATH + 1];
     //char *ptr = filelist;
     //struct stat filestat;
-    DIR *dir;
+    
     //s32 start = 0;
 	u32 fu, ff, cnt = 0;
 	struct dirent *entry = NULL;
@@ -645,13 +652,13 @@ u32 filelist_retrieve(bool avail_list) {
 			//if(netconnection) ThemeList[ff].downloadcount = retrieve_downloadcount();
 			//gprintf("theme =%s .type%d %d \n",ThemeList[ff].title, ThemeList[ff].type,ff);
 		}
-		if(debug) logfile("cnt[%u]\n", cnt);
-		goto end;
+		
+		//goto end;
     }
-	
+	else {
 	//Generate dirpath 
 
-    
+    DIR *dir;
 	sprintf(dirpath, "%s:/themes", getdevicename(thememode));
 	if(debug) logfile("dirpath[%s]\n", dirpath);
     /*else if(i == 4)  // usb(uneek nand)
@@ -711,9 +718,12 @@ u32 filelist_retrieve(bool avail_list) {
 			
 		}
     }
+	//qsort(ThemeList, cnt, sizeof(dirent_t), __FileCmp);
+	closedir(dir);
+	}
 	
-end:	
 	needloading = false;
+	if(debug) logfile("cnt[%u]\n", cnt);
     return cnt;
 }
 
@@ -833,7 +843,7 @@ void __Free_Channel_Images(void){
 }
 void __Finish_ALL_GFX(void) {
 	int i;
-
+	if(thememode)
 	__Free_Channel_Images();
 
 	for(i=0; i<MAX_TEXTURES; i++){
@@ -1867,7 +1877,7 @@ int __Show_Theme(){
 		MRC_Draw_String(((640-strlen(thetheme->title))/2), 400, WHITE, thetheme->title);
 		sprintf(tempString, "%s%s", "Downloads ", count);
 		if(availList)
-			if(netconnection) MRC_Draw_String( 500, 400, WHITE, tempString);
+			MRC_Draw_String( 500, 400, WHITE, tempString);
 		//MRC_Draw_String(30, 330, WHITE, "By ");
 		sprintf(tempString, "%s", (availList == 1 ? "[A] - Download Theme" : "[A] - Install Theme"));
 		MRC_Draw_String(40, 400, WHITE, tempString);
@@ -1901,7 +1911,7 @@ int __Show_Theme(){
 				break;
 			}
 			if((WPAD_ButtonsDown(WPAD_CHAN_0) & WPAD_BUTTON_B) || (PAD_ButtonsDown(0) & PAD_BUTTON_B)){
-				ret = MENU_SELECT_THEME;
+				//ret = MENU_SELECT_THEME;
 				break;
 			}
 		}
@@ -1913,30 +1923,30 @@ int __Show_Theme(){
 
 
 #define HOME_BUTTON_X			210
-#define HOME_BUTTON_Y			120
+#define HOME_BUTTON_Y			135
 #define HOME_BUTTON_WIDTH		220
-#define HOME_BUTTON_HEIGHT		40
-#define HOME_BUTTON_SEPARATION	10
+#define HOME_BUTTON_HEIGHT		30
+#define HOME_BUTTON_SEPARATION	5
 int __Home(void) {
 	int i, hotSpot, hotSpotPrev, ret;
-	bool repaint=true;
+	bool repaint = true;
 
 	// Create/restore hotspots
 	Wpad_CleanHotSpots();
-	for(i=0; i<6; i++){
+	for(i = 0; i < 6; i++){
 		Wpad_AddHotSpot(i,
 			HOME_BUTTON_X,
-			100+i*(HOME_BUTTON_HEIGHT+HOME_BUTTON_SEPARATION),
+			HOME_BUTTON_Y+i*(HOME_BUTTON_HEIGHT+HOME_BUTTON_SEPARATION),
 			HOME_BUTTON_WIDTH,
 			HOME_BUTTON_HEIGHT,
-			(i==-1 ? 5 : i-1),
-			(i==6 ? 0 : i+1),
+			(i == 0 ? 5 : i - 1),
+			(i == 6 ? 0 : i + 1),
 			i, i
 		);
 	}
 
 
-	__Draw_Window(HOME_BUTTON_WIDTH+44, 320, "Options");
+	__Draw_Window(HOME_BUTTON_WIDTH + 44, 240, "Options");
 
 	//sprintf(tempString, "IOS_%d v_%d", IOS_GetVersion(), IOS_GetRevision());
 	//MRC_Draw_String(250, 380, BLACK, tempString);
@@ -1945,7 +1955,7 @@ int __Home(void) {
 	//MRC_Draw_String(210, 350, BLACK, tempString);
 
 	// Loop
-	hotSpot = hotSpotPrev=-1;
+	hotSpot = hotSpotPrev = -1;
 
 	ret = MENU_SELECT_THEME;
 	for(;;){
@@ -1956,12 +1966,13 @@ int __Home(void) {
 			hotSpotPrev=hotSpot;
 
 			__Draw_Button(0, "Device Menu", hotSpot == 0);
-			__Draw_Button(1, "Download Original Theme", hotSpot == 1);
-			if(availList) __Draw_Button(2, "Install Theme", hotSpot == 2);
-			else __Draw_Button(2, "Download Theme", hotSpot == 2);
-			__Draw_Button(3, "Download Theme Images", hotSpot == 3);
-			__Draw_Button(4, "Exit <HBC>", hotSpot == 4);
-			__Draw_Button(5, "Exit <Sys-Menu>", hotSpot == 5);
+			if(availList) __Draw_Button(1, "Install Theme", hotSpot == 1);
+			else __Draw_Button(1, "Download Theme", hotSpot == 1);
+			if(!availList) __Draw_Button(2, "", hotSpot == 2);
+			else __Draw_Button(2, "Download Theme Images", hotSpot == 2);
+			__Draw_Button(3, "Download Original Theme", hotSpot == 3);
+			__Draw_Button(4, "Exit HBC", hotSpot == 4);
+			__Draw_Button(5, "Exit System Menu", hotSpot == 5);
 			repaint = false;
 		}
 		MRC_Draw_Cursor(Wpad_GetWiimoteX(), Wpad_GetWiimoteY(), 0);
@@ -1969,21 +1980,21 @@ int __Home(void) {
 		if(((WPAD_ButtonsDown(WPAD_CHAN_0) & WPAD_BUTTON_A) || (PAD_ButtonsDown(0) & PAD_BUTTON_A)) && hotSpot>-1 && hotSpot<6){
 			if(hotSpot == 0)
 				ret = MENU_MANAGE_DEVICE;
-			else if(hotSpot == 1)
-				ret = MENU_ORIG_THEME;
-			else if(hotSpot == 2) {
+			else if(hotSpot == 1) {
 				availList ^= 1;
 				ret = MENU_MANAGE_DEVICE;
 			}
-			else if(hotSpot == 3)
+			else if(hotSpot == 2)
 				ret = MENU_DOWNLOAD;
+			else if(hotSpot == 3)
+				ret = MENU_ORIG_THEME;
 			else if(hotSpot == 4)
 				ret = MENU_EXIT;
 			else if(hotSpot == 5)
 				ret = MENU_EXIT_TO_MENU;
 			break;
 		}else if(((WPAD_ButtonsDown(WPAD_CHAN_0) & (WPAD_BUTTON_HOME | WPAD_BUTTON_B)) || (PAD_ButtonsDown(0) & (PAD_BUTTON_START | PAD_BUTTON_B)))){
-			ret = MENU_SELECT_THEME;
+			//ret = MENU_SELECT_THEME;
 			break;
 		}else{
 			repaint = true;
@@ -1998,6 +2009,9 @@ int __Downloadthemepng() {
 	char *tmpstr = (char*)malloc(256);
 	int i,ret, error = 0;
 	
+	if(!netconnection) return MENU_HOME;
+	if(!availList) return MENU_HOME;
+	
 	sprintf(tmpstr,"Starting Theme DataBase preview download ....");
 	__Draw_Message(tmpstr,0);
 	sleep(2);
@@ -2005,10 +2019,7 @@ int __Downloadthemepng() {
 	if(debug) logfile("thememode = %d \n",thememode);
 	sprintf(tmpstr,"%s:/config/wiithememanager/imgs",getdevicename(thememode));
 	if(!Fat_CheckFile(tmpstr))
-		Fat_MakeDir(tmpstr);
-	
-	if(!CheckFile(tmpstr))
-		CreateSubfolder(tmpstr);
+		Fat_CreateSubfolder(tmpstr);
 	
 	for(int retries = 0; retries < 5; ++retries){
 		__Draw_Loading();
@@ -2034,7 +2045,7 @@ int __Downloadthemepng() {
 		__Draw_Message(tmpstr,0);
 		sleep(1);
 		__Draw_Loading();
-		sprintf(tempString, "http://bartlesvilleok-am.com/wiithemer/wii/wiithememanager/imgs/%s", DBlistpng[i]);
+		sprintf(tempString, "http://wiithemer.org/wii/wiithememanager/imgs/%s", DBlistpng[i]);
 		if(debug) logfile("tempString(%s) \n",tempString);
 		sprintf(fatpath,"%s:/config/wiithememanager/imgs/%s", getdevicename(thememode), DBlistpng[i]);
 		if(debug) logfile("fatpath(%s) \n",fatpath);
@@ -2091,11 +2102,8 @@ int __Downloadthemepng() {
 	sprintf(tmpstr,"Theme DataBase preview download .... Complete .");
 	__Draw_Message(tmpstr,0);
 	sleep(3);
-	if(error == 0)
-		return 0;
-	
-
-	
+	free(fatpath);
+	free(tmpstr);
 	return 0;
 }
 const char *getdevicename(int index) {
@@ -2111,7 +2119,7 @@ const char *getdevicename(int index) {
 #define DEVICE_X			        200
 #define DEVICE_Y			        170
 #define DEVICE_WIDTH		        224
-#define DEVICE_BUTTON_HEIGHT		40
+#define DEVICE_BUTTON_HEIGHT		30
 #define DEVICE_BUTTON_SEPARATION	40
 int __Select_Device(void) {
 	int i, hotSpot, hotSpotPrev, ret;
@@ -2200,9 +2208,9 @@ const char *spinoptions(int input) {
 	return rtn;
 }
 #define SPIN_BUTTON_X			210
-#define SPIN_BUTTON_Y			200
+#define SPIN_BUTTON_Y			170
 #define SPIN_BUTTON_WIDTH		220
-#define SPIN_BUTTON_HEIGHT		40
+#define SPIN_BUTTON_HEIGHT		30
 #define SPIN_BUTTON_SEPARATION	10
 int __Spin_Question(void) {
 	int i, hotSpot, hotSpotPrev, ret;
@@ -2223,7 +2231,7 @@ int __Spin_Question(void) {
 	}
 
 
-	__Draw_Window(SPIN_BUTTON_WIDTH+60, 220, "Channel Spin Option :");
+	__Draw_Window(SPIN_BUTTON_WIDTH+60, 170, "Channel Spin Option :");
 
 	sprintf(tempString, "IOS_%d v_%d", IOS_GetVersion(), IOS_GetRevision());
 	MRC_Draw_Box(25, 425, 120, 25, WHITE - 0x20);
@@ -2423,7 +2431,7 @@ int __download_Theme() {
 int Menu_Loop(){
 	
 	int ret = 0;
-	char tmpstr[256];
+	//char tmpstr[256];
 	/*if(debug) {
 		Con_Init(CONSOLE_X, CONSOLE_Y, CONSOLE_WIDTH, CONSOLE_HEIGHT);
 		printf("Wii Theme Manager Debugging Started .\n");
@@ -2436,12 +2444,12 @@ int Menu_Loop(){
 	MRC_Init();
 	textures[1] = MRC_Load_Texture((void *)wiithememanager_background_png);
 	textures[4] = MRC_Load_Texture((void *)wiithememanager_loading_png);
-	netconnection = checknetconnection();
+	//netconnection = checknetconnection();
 	priiloadercheck = checkforpriiloader();
 	systemmenuversion = GetSysMenuVersion();
 	if(systemmenuversion > 518) systemmenuversion = checkcustomsystemmenuversion();
-	if(!thememode) thememode = __Select_Device();
-	if(!Fat_Mount(thememode)){
+	//if(!thememode) thememode = __Select_Device();
+	/*if(!Fat_Mount(thememode)){
 		if(debug) logfile("fat not mounted %d \n", thememode);
 	}
 	else
@@ -2450,25 +2458,25 @@ int Menu_Loop(){
 	sprintf(tmpstr,"%s:/config/wiithememanager", getdevicename(thememode));
 	if(debug) logfile("tmpstr = %s \n", tmpstr);
 	if(!Fat_CheckFile(tmpstr)) {
-		CreateSubfolder(tmpstr);
+		Fat_CreateSubfolder(tmpstr);
 	}
 	sprintf(tmpstr,"%s:/themes", getdevicename(thememode));
 	if(debug) logfile("tmpstr = %s \n", tmpstr);
 	if(!Fat_CheckFile(tmpstr)) {
-		CreateSubfolder(tmpstr);
-	}
-	logfile("connect = %d\n", netconnection);
-	logfile("priiloadercheck = %d\n", priiloadercheck);
-	themecnt = filelist_retrieve(availList);
+		Fat_CreateSubfolder(tmpstr);
+	}*/
+	//logfile("connect = %d\n", netconnection);
+	//logfile("priiloadercheck = %d\n", priiloadercheck);
+	//themecnt = filelist_retrieve(availList);
 	// Load skin images
 	MRC_Free_Texture(textures[1]);
 	MRC_Free_Texture(textures[4]);
 	__Load_Skin_From_FAT();
 
 	// Load config file
-	__Load_Config();
+	//__Load_Config();
 	
-	ret = MENU_SELECT_THEME;
+	ret = MENU_HOME;
 	
 	if(!priiloadercheck) {
 		priiloaderackknowledgement = __Question_Window("Priiloader not Detected", "Theme Installs are disabled . ", "Continue", "Exit");
@@ -2494,12 +2502,19 @@ int Menu_Loop(){
 			__Load_Config();
 			ret = MENU_SELECT_THEME;
 		}
-		else if(ret == MENU_DOWNLOAD)
+		else if(ret == MENU_DOWNLOAD) {
+			netconnection = checknetconnection();
 			ret = __Downloadthemepng();
-		else if(ret == MENU_ORIG_THEME)
+		}
+		else if(ret == MENU_ORIG_THEME) {
+			netconnection = checknetconnection();
 			ret = __downloadApp(1);
+		}
 		else if(ret == MENU_INSTALL_THEME) {
-			if(availList) ret = __download_Theme();
+			if(availList) {
+				netconnection = checknetconnection();
+				ret = __download_Theme();
+			}
 			else ret = __install_Theme();
 		}
 		else if((ret == MENU_EXIT) || (ret == MENU_EXIT_TO_MENU))
@@ -2509,7 +2524,9 @@ int Menu_Loop(){
 	if(ret == MENU_EXIT_TO_MENU) __Draw_Message("Exiting to the System Menu ....", 0);
 	if(ret == MENU_EXIT) __Draw_Message("Exiting to HBC ....", 0);
 	sleep(1);
-	__Finish_ALL_GFX();
+	logfile("thememode = %d\n", thememode);
+	if(thememode)
+		__Finish_ALL_GFX();
 	Fat_Unmount();
 	if(ret == MENU_EXIT_TO_MENU) SYS_ResetSystem(SYS_RETURNTOMENU, 0, 0);
 	return sysHBC();// exit(0);

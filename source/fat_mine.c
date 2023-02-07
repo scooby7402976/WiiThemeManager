@@ -5,6 +5,10 @@
 #include <fat.h>
 #include <dirent.h>
 #include <sys/stat.h> //for mkdir
+#include <string.h>
+#include <gccore.h>
+#include <sys/dir.h>
+#include <unistd.h>
 
 #define DEV_MOUNT_SD  "sd"
 #define DEV_MOUNT_USB "usb"
@@ -166,4 +170,83 @@ s32 Fat_SaveFile(const char *filepath, void **outbuf, u32 outlen){
 	}
 
 	return ret;
+}
+
+bool CheckFile(const char * filepath)
+{
+    if(!filepath)
+        return false;
+
+    struct stat filestat;
+
+    char dirnoslash[strlen(filepath)+2];
+    snprintf(dirnoslash, sizeof(dirnoslash), "%s", filepath);
+
+    while(dirnoslash[strlen(dirnoslash)-1] == '/') {
+        dirnoslash[strlen(dirnoslash)-1] = '\0';
+	}
+	char * notRoot = strrchr(dirnoslash, '/');
+	if(!notRoot)
+	{
+	    strcat(dirnoslash, "/");
+	}
+
+    if (stat(dirnoslash, &filestat) == 0)
+        return true;
+
+    return false;
+}
+bool Fat_CreateSubfolder(const char * fullpath)
+{
+    if(!fullpath)
+        return false;
+
+    bool result  = false;
+
+    char dirnoslash[strlen(fullpath)+1];
+    strcpy(dirnoslash, fullpath);
+
+    int pos = strlen(dirnoslash)-1;
+    while(dirnoslash[pos] == '/')
+    {
+        dirnoslash[pos] = '\0';
+        pos--;
+    }
+
+    if(CheckFile(dirnoslash))
+    {
+        return true;
+    }
+    else
+    {
+        char parentpath[strlen(dirnoslash)+2];
+        strcpy(parentpath, dirnoslash);
+        char * ptr = strrchr(parentpath, '/');
+
+        if(!ptr)
+        {
+            //!Device root directory (must be with '/')
+            strcat(parentpath, "/");
+            struct stat filestat;
+            if (stat(parentpath, &filestat) == 0)
+                return true;
+
+            return false;
+        }
+
+        ptr++;
+        ptr[0] = '\0';
+
+        result = Fat_CreateSubfolder(parentpath);
+    }
+
+    if(!result)
+        return false;
+
+    if (mkdir(dirnoslash, S_IREAD | S_IWRITE) == -1)
+    {
+        return false;
+    }
+
+    return true;
 }

@@ -13,6 +13,7 @@ int Fat_MakeDir(const char *);
 extern "C" {
 #endif
 bool Fat_CheckFile(const char *);
+bool Fat_CreateSubfolder(const char *);
 #ifdef __cplusplus
 }
 #endif
