@@ -9,72 +9,65 @@
 #include <gccore.h>
 #include <sys/dir.h>
 #include <unistd.h>
+#include <sdcard/wiisd_io.h>
 
-#define DEV_MOUNT_SD  "sd"
-#define DEV_MOUNT_USB "usb"
+
 
 #include "fat_mine.h"
-#include <sdcard/wiisd_io.h>
-#include "usbstorage.h"
 #include "menu.h"
 
-
-//extern static u32 Dbase;
-
 const DISC_INTERFACE* interface;
-/*typedef struct {
-	// Device mount point
-	char *mount;
 
-	// Device interface
-	const DISC_INTERFACE *interface;
-} fatDevice;*/
-
-bool Fat_Mount(int dev){
+s32 Fat_Mount(s32 dev) {
 	s32 ret;
 
 	if(dev == SD)
 		interface = &__io_wiisd;
 	else if(dev == USB)
 		interface = &__io_usbstorage;
-	else
-		return 0;
 	
-
-	// Initialize SDHC interface
+	// Initialize interface
 	ret = interface->startup();
 	if(!ret)
-		return 0;
+		dev = 0;
 
 	// Mount device
-	if(dev == SD){
+	if(dev == SD) {
 		ret = fatMountSimple(DEV_MOUNT_SD, interface);
 		if (!ret)
-			return 0;
+			dev = 0;
+		Sd_Mounted = true;
 	}
-	if(dev == USB){
+	if(dev == USB) {
 		ret = fatMountSimple(DEV_MOUNT_USB, interface);
 		if (!ret)
-			return 0;
+			dev = 0;
+		Usb_Mounted = true;
 	}
-	return 1;
+	return dev;
 }
 
-s32 Fat_Unmount(void){
+s32 Fat_Unmount(s32 dev) {
 	s32 ret;
 
 	// Unmount device
-	fatUnmount(DEV_MOUNT_SD);
-	fatUnmount(DEV_MOUNT_USB);
-	// Shutdown SDHC interface
+	if(dev == SD) {
+		fatUnmount(DEV_UNMOUNT_SD);
+		Sd_Mounted = false;
+	}
+	if(dev == USB) {
+		fatUnmount(DEV_UNMOUNT_USB);
+		Usb_Mounted = false;
+	}
+	// Shutdown interface
 	ret = interface->shutdown();
 	if (!ret)
-		return -1;
+		return 0;
 
-	return 0;
+	return 1;
 }
 
-s32 Fat_ReadFile(const char *filepath, void **outbuf, bool needloading){
+s32 Fat_ReadFile(const char *filepath, void **outbuf, bool needloading) {
 	FILE *fp     = NULL;
 	void *buffer = NULL;
 
@@ -123,7 +116,7 @@ out:
 	return ret;
 }
 
-int Fat_MakeDir(const char *dirname){
+int Fat_MakeDir(const char *dirname) {
 	int ret=-1;
 	DIR *dir;
 
@@ -142,7 +135,7 @@ int Fat_MakeDir(const char *dirname){
 	return ret;
 }
 
-bool Fat_CheckFile(const char *filepath){
+bool Fat_CheckFile(const char *filepath) {
 	FILE *fp = NULL;
 
 	/* Open file */
@@ -155,7 +148,7 @@ bool Fat_CheckFile(const char *filepath){
 	return true;
 }
 
-s32 Fat_SaveFile(const char *filepath, void **outbuf, u32 outlen){
+s32 Fat_SaveFile(const char *filepath, void **outbuf, u32 outlen) {
 	s32 ret;
 	FILE *fd;
 	fd = fopen(filepath, "wb");
@@ -172,8 +165,7 @@ s32 Fat_SaveFile(const char *filepath, void **outbuf, u32 outlen){
 	return ret;
 }
 
-bool CheckFile(const char * filepath)
-{
+bool CheckFile(const char * filepath) {
     if(!filepath)
         return false;
 
@@ -196,8 +188,7 @@ bool CheckFile(const char * filepath)
 
     return false;
 }
-bool Fat_CreateSubfolder(const char * fullpath)
-{
+bool Fat_CreateSubfolder(const char * fullpath) {
     if(!fullpath)
         return false;
 
@@ -249,4 +240,15 @@ bool Fat_CreateSubfolder(const char * fullpath)
     }
 
     return true;
+}
+bool Fat_CheckDir(const char *dirname) {
+	DIR *dir;
+	
+	dir = opendir(dirname);
+	
+	if(dir) {
+		closedir(dir);
+		return true;
+	}
+	else return false;
 }

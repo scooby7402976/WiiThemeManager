@@ -15,5 +15,5 @@
 - Download Theme images - download mode only
 - Exit to Hbc or System Menu
 
-- app is servered from www.wiithemer.org my server run out of my home
-- same naming scheme for website and this app
+- app is served from www.wiithemer.org my server run out of my home
+

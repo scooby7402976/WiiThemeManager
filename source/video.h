@@ -12,10 +12,10 @@ typedef struct{
 }MRCtex;
 
 
-#define CONSOLE_X		224
-#define CONSOLE_Y		224
-#define CONSOLE_WIDTH	384
-#define CONSOLE_HEIGHT	224
+#define CONSOLE_X		10
+#define CONSOLE_Y		200
+#define CONSOLE_WIDTH	300
+#define CONSOLE_HEIGHT	150
 
 /* Prototypes */
 void Con_Init(u32, u32, u32, u32);

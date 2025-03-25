@@ -437,21 +437,20 @@ void MRC_Free_Texture(MRCtex* tex){
 }
 
 
-void MRC_Init(void){
-	framebufferRGBA=allocate_memory(vmode->fbWidth*vmode->xfbHeight*4);
+void MRC_Init(){
+	framebufferRGBA = allocate_memory(vmode->fbWidth*vmode->xfbHeight*4);
 	WPAD_SetVRes(WPAD_CHAN_0, vmode->fbWidth, vmode->xfbHeight);
-
-	font=MRC_Load_Texture((void*)font_png);
-
-	cursor=MRC_Load_Texture((void*)cursor_png);
-	cursorBuffer=allocate_memory(sizeof(MRCtex));
-	cursorBuffer->width=CURSOR_WIDTH;
-	cursorBuffer->height=cursor->height;
-	cursorBuffer->alpha=false;
-	cursorBuffer->buffer=allocate_memory(CURSOR_WIDTH*cursor->height*4);
-	cursor->centerx=10;
-	cursorBuffer->centerx=10;
-	cursorBuffer->centery=0;
+	font = MRC_Load_Texture((void*)font_png);
+	cursor = MRC_Load_Texture((void*)cursor_png);
+	cursorBuffer = allocate_memory(sizeof(MRCtex));
+	cursorBuffer->width = CURSOR_WIDTH;
+	cursorBuffer->height = cursor->height;
+	cursorBuffer->alpha = false;
+	cursorBuffer->buffer = allocate_memory(CURSOR_WIDTH*cursor->height*4);
+	cursor->centerx = 10;
+	cursorBuffer->centerx = 10;
+	cursorBuffer->centery = 0;
+	return;
 }
 
 void MRC_Finish(void){

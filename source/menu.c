@@ -1,6 +1,6 @@
 /* menu.c
  *
- * wiithememanager Wii theme installer based on the gui of mighty channels by scooby74029
+ * wiithememanager - Wii theme installer/downloader based on the gui of mighty channels(Marc) by Scooby74029 Copyright (c) 2024 Scooby74029
  *
  * Triiforce(Mighty Channels) mod by Marc
  *
@@ -18,9 +18,9 @@
 #include <ogc/lwp_watchdog.h>
 #include <wiiuse/wpad.h>
 #include <asndlib.h>
-#include <network.h> //for network
+#include <network.h>
 #include <sys/errno.h>
-#include <sys/stat.h> //for mkdir
+#include <sys/stat.h>
 #include <sys/types.h>
 #include <sys/dir.h>
 #include <malloc.h>
@@ -29,22 +29,23 @@
 #include <unistd.h>
 #include <gctypes.h>
 #include <stdarg.h>
+#include <assert.h>
+#include <zip/unzip.h>
+#include <zip/ioapi.h>
 
+#include "menu.h"
 #include "tools.h"
-#include "lz77.h"
 #include "config.h"
 #include "fat_mine.h"
 #include "video.h"
 #include "http.h"
 #include "wpad.h"
-#include "menu.h"
+
 #include "rijndael.h"
 #include "sys.h"
 #include "themedatabase.h"
 #include "http.h"
-//#include "fileops.h"
-
-//Menu images
+#include "zlib.h"
 #include "wiithememanager_arrows_png.h"
 #include "wiithememanager_background_png.h"
 #include "wiithememanager_container_png.h"
@@ -52,35 +53,17 @@
 #include "wiithememanager_empty_png.h"
 #include "wiithememanager_loading_png.h"
 #include "wiithememanager_numbers_png.h"
+#include "wiithememanager_qmark_png.h"
 
-#define MAX_TEXTURES	6
-#define TEX_ARROWS		0
-#define TEX_BACKGROUND	1
-#define TEX_CONTAINER	2
-#define TEX_EMPTY		3
-#define TEX_LOADING		4
-#define TEX_NUMBERS		5
+static bool wideScreen = false;
 static MRCtex* textures[MAX_TEXTURES];
-
-// Constants
-#define ARROWS_X		        24
-#define ARROWS_Y		        210
-#define ARROWS_WIDTH	        20 
-#define WIITHEMEMANAGER_PATH		    "config/wiithememanager/"
-#define IMAGES_PREFIX		    "imgs"
-#define WIITHEMEMANAGER_CONFIG_FILE	"wiithememanager.cfg"
-
-#define EMPTY			-1
-
-#define BLACK	0x00000000
-#define YELLOW	0xFFFF00FF
-#define WHITE	0xFFFFFFFF
-#define ORANGE	0xFF800000
-#define RED     0xFF0000FF
+int debugcard = 1;
+bool priiloadercheck = false;
+u32 systemmenuversion = 0;
 
 static s16* orden;
 static int spinselected = -1;
-static int thememode = 0;
+int thememode = -1;
 static u32 themecnt = 0;
 u8 commonkey[16] = { 0xeb, 0xe4, 0x2a, 0x22, 0x5e, 0x85, 0x93, 0xe4, 0x48,
     0xd9, 0xc5, 0x45, 0x73, 0x81, 0xaa, 0xf7
@@ -88,13 +71,13 @@ u8 commonkey[16] = { 0xeb, 0xe4, 0x2a, 0x22, 0x5e, 0x85, 0x93, 0xe4, 0x48,
 static u16 page, maxPages = 1;
 static int selectedtheme = 0, movingGame = -1;
 static int loadingAnim = 0;
-static bool wideScreen = false;
+
 static bool saveconfig = false;
-static bool priiloadercheck = false;
+
 static bool pageLoaded[50];
 static char tempString[256];
 ModTheme ThemeList[MAXTHEMES];
-u32 systemmenuversion;
+
 bool foundneek;
 CurthemeStats curthemestats;
 dirent_t *ent = NULL;
@@ -102,12 +85,12 @@ dirent_t *nandfilelist = NULL;
 extern GXRModeObj *vmode;
 extern u32* framebuffer;
 bool needloading = false;
-bool availList = true;
+bool downloadable_theme_List = true;
 bool netconnection = false;
 bool priiloaderackknowledgement = false;
-u32 known_Versions[KNOWN_SYSTEMMENU_VERSIONS] = {416, 417, 418, 448, 449, 450, 454, 480, 481, 482, 486, 512, 513, 514, 518};
-char *regions[KNOWN_SYSTEMMENU_VERSIONS] = {"J", "U", "E", "J", "U", "E", "K", "J", "U", "E", "K", "J", "U", "E", "K"};
-char *knownappfilenames[KNOWN_SYSTEMMENU_VERSIONS] = {"00000070.app", "00000072.app", "00000075.app", "00000078.app", "0000007b.app", "0000007e.app", "00000081.app", "00000084.app", "00000087.app", "0000008a.app", "0000008d.app", "00000094.app", "00000097.app", "0000009a.app", "0000009d.app"};
+u32 known_Versions[KNOWN_SYSTEMMENU_VERSIONS] = {416, 417, 418, 448, 449, 450, 454, 480, 481, 482, 486, 512, 513, 514, 518, 608, 609, 610};
+char *regions[KNOWN_SYSTEMMENU_VERSIONS] = {"J", "U", "E", "J", "U", "E", "K", "J", "U", "E", "K", "J", "U", "E", "K", "J", "U", "E"};
+char *knownappfilenames[KNOWN_SYSTEMMENU_VERSIONS] = {"0000006f.app", "00000072.app", "00000075.app", "00000078.app", "0000007b.app", "0000007e.app", "00000081.app", "00000084.app", "00000087.app", "0000008a.app", "0000008d.app", "00000094.app", "00000097.app", "0000009a.app", "0000009d.app", "0000001c.app", "0000001f.app", "00000022.app"};
 char *appfilename[2] = { "Cetk", "Tmd" };
 char *updatedownloadcount = NULL;
 const u8 COLS[]={3, 4};
@@ -118,31 +101,54 @@ const u8 SEPARACIONX[]={180, 136};
 #define SEPARACIONY 125
 const u8 ANCHOIMAGEN[]={154, 116}; //116
 #define ALTOIMAGEN 90
+const char *themedir = "themes";
+
+static bool Sd_Mounted = false;
+static bool Usb_Mounted = false;
 
 #define ALIGN32(x) (((x) + 31) & ~31)
-char *retrieve_downloadcount();
+
+int retrieve_themefilesize();
+int retrieve_downloadcount();
 const char *getregion(u32 num);
 const char *getsysvernum(u32 num);
 const char *getdevicename(int index);
 int __Spin_Question(void);
-int __Select_Device(void);
+void __Select_Device(void);
 void __Load_Config(void);
 
-bool checknetconnection() {
-	int ret = net_init();
+bool __Check_HBC(void) {
+	u32 *stub = (u32 *)0x80001800;
 
-	if(ret == 0) {
-		net_deinit();
-		return 1;
-	}
+	// Check HBC stub
+	if (*stub)
+		return true;
+	return false;
+}
+bool checkNinit_netconnection() {
+	int ret = net_init();
+	__Draw_Loading();
+	if(ret == 0) return 1;
 	return 0;
 }
-bool checkforpriiloader() {
+bool is_vWii(u32 version) {
+	bool version_is_vWii = false;
+	
+	switch(version) {
+		case 608:
+		case 609:
+		case 610:
+			version_is_vWii = true;
+			break;
+	}
+	return version_is_vWii;
+}
+bool checkforpriiloader(bool is_vWii) {
 	dirent_t *priiloaderfiles = NULL;
 	u32 nandfilecnt;
 	int filecntr;
 	char *searchstr;
-	
+	//logfile("is_vWii [%i]\n", is_vWii);
 	searchstr = "title_or.tmd";
 	getdir("/title/00000001/00000002/content",&priiloaderfiles,&nandfilecnt);
 	for(filecntr = 0; filecntr < nandfilecnt; filecntr++) {
@@ -159,8 +165,10 @@ void logfile(const char *format, ...) {
 	va_start (args, format);
 	vsprintf (buffer,format, args);
 	FILE *f = NULL;
-	Fat_Mount(1);
-	sprintf(path, "%s:/wiithememanager.log", getdevicename(1));
+	if(!Sd_Mounted)
+		Fat_Mount(SD);
+	
+	sprintf(path, "%s:/wiithememanager.log", getdevicename(SD));
 	f = fopen(path, "a");
 	if (!f) {
 		printf("Error writing log\n");
@@ -169,6 +177,9 @@ void logfile(const char *format, ...) {
 	fputs(buffer, f);
 	fclose(f);
 	va_end (args);
+	if(Sd_Mounted)
+		Fat_Unmount(SD);
+	
 	
 	return;
 }
@@ -188,13 +199,13 @@ void __Draw_Page(int selected) {
 
 	// Background
 	MRC_Draw_Texture(0, 0, textures[TEX_BACKGROUND]);
-	sprintf(tempString, "IOS_%d v_%d", IOS_GetVersion(), IOS_GetRevision());
-	MRC_Draw_Box(25, 425, 120, 25, WHITE - 0x20);
+	sprintf(tempString, "IOS %d v%d", IOS_GetVersion(), IOS_GetRevision());
+	MRC_Draw_Box(29, 429, strlen(tempString)*8 + 1, 17, WHITE);
 	MRC_Draw_String(30, 430, BLACK, tempString);
-	
-	sprintf(tempString, "System_Menu v%s_%s", getsysvernum(systemmenuversion), getregion(systemmenuversion));
-	MRC_Draw_Box(450, 425, 160, 25, WHITE - 0x20);
-	MRC_Draw_String(455, 430, BLACK, tempString);
+	// add fix for custom theme version dewtection here ex 65535
+	sprintf(tempString, "System Menu v%s%s", getsysvernum(systemmenuversion), getregion(systemmenuversion));
+	MRC_Draw_Box(459, 429, strlen(tempString)*8 + 2, 17, WHITE);
+	MRC_Draw_String(460, 430, BLACK, tempString);
 	
 	if(themecnt == 0 || !pageLoaded[page]){
 		return;
@@ -213,6 +224,10 @@ void __Draw_Page(int selected) {
 				}else if(selected == i*COLS[wideScreen]+j){
 					MRC_Draw_Texture(x, y, ThemeList[orden[theme]].banner);
 					MRC_Draw_Tile(x, y, textures[TEX_CONTAINER], containerWidth, 1);
+					sprintf(tempString, "%s", ThemeList[orden[theme]].title);
+					MRC_Draw_Box(x - (containerWidth/2 + 1), y + 49, strlen(tempString)*8 + 1, 17, WHITE);
+					MRC_Draw_String(x - containerWidth/2, y + 50, BLACK, tempString);
+					
 				}else{
 					MRC_Draw_Texture(x, y, ThemeList[orden[theme]].banner);
 					MRC_Draw_Tile(x, y, textures[TEX_CONTAINER], containerWidth, 0);
@@ -226,7 +241,7 @@ void __Draw_Page(int selected) {
 
 	// Page number
 	sprintf(tempString, "%d of %d", page + 1, maxPages);
-	MRC_Draw_Box(285, 425, 60, 25, WHITE - 0x20);
+	MRC_Draw_Box(289, 429, strlen(tempString)*8 + 1, 17, WHITE);
 	MRC_Draw_String(290, 430, BLACK, tempString);
 
 	if(movingGame > -1){
@@ -238,7 +253,7 @@ void __Draw_Page(int selected) {
 	}
 
 	// Arrows
-	MRC_Draw_Tile(ARROWS_X, ARROWS_Y, textures[TEX_ARROWS], ARROWS_WIDTH, 0+(page>0)+(page>0 && selected==HOTSPOT_LEFT));
+	MRC_Draw_Tile(ARROWS_X, ARROWS_Y, textures[TEX_ARROWS], ARROWS_WIDTH, 0+(page>=0)+(page>=0 && selected==HOTSPOT_LEFT));
 	MRC_Draw_Tile(640-ARROWS_X, ARROWS_Y, textures[TEX_ARROWS], ARROWS_WIDTH, 3+(page+1<maxPages)+(page+1<maxPages && selected==HOTSPOT_RIGHT));
 }
 
@@ -266,25 +281,29 @@ void __Draw_Window(int width, int height, const char* title) {
 	int x=(640-width)/2;
 	int y=(480-height)/2-32;
 	__Draw_Page(-1);
+	char mode[32];// = ;
+	//char *imode = ;
 	//MRC_Draw_Box(0, 0, 640, 480, BLACK);
 	MRC_Draw_Texture(0, 0, textures[TEX_BACKGROUND]);
-	sprintf(tempString, "IOS_%d v_%d", IOS_GetVersion(), IOS_GetRevision());
-	MRC_Draw_Box(25, 425, 120, 25, WHITE - 0x20);
+	sprintf(tempString, "IOS %d v%d", IOS_GetVersion(), IOS_GetRevision());
+	MRC_Draw_Box(29, 429, strlen(tempString)*8 + 1, 17, WHITE);
 	MRC_Draw_String(30, 430, BLACK, tempString);
-	if(availList) {
-		MRC_Draw_Box(285, 425, 60, 25, WHITE - 0x20);
-		MRC_Draw_String(290, 430, BLACK, "Mode D");
+	if(downloadable_theme_List) {
+		sprintf(mode, "%s", "Mode Downloader");
+		MRC_Draw_Box(259, 429, strlen(tempString)*10 + 2, 17, WHITE);
+		MRC_Draw_String(260, 430, BLACK, mode);
 	}
 	else {
-		MRC_Draw_Box(285, 425, 60, 25, WHITE - 0x20);
-		MRC_Draw_String(290, 430, BLACK, "Mode I");
+		sprintf(mode, "%s", "Mode Installer");
+		MRC_Draw_Box(259, 429, strlen(tempString)*10 - 1, 17, WHITE);
+		MRC_Draw_String(260, 430, BLACK, mode);
 	}
-	sprintf(tempString, "System_Menu v%s_%s", getsysvernum(systemmenuversion), getregion(systemmenuversion));
-	MRC_Draw_Box(450, 425, 160, 25, WHITE - 0x20);
-	MRC_Draw_String(455, 430, BLACK, tempString);
+	sprintf(tempString, "System Menu v%s%s", getsysvernum(systemmenuversion), getregion(systemmenuversion));
+	MRC_Draw_Box(459, 429, strlen(tempString)*8 + 2, 17, WHITE);
+	MRC_Draw_String(460, 430, BLACK, tempString);
 	
 	MRC_Draw_Box(x, y, width, 32, YELLOW);
-	MRC_Draw_Box(x, y+32, width, height, WHITE-0x20);
+	MRC_Draw_Box(x, y+32, width, height, WHITE);
 
 	MRC_Draw_String(x+(width-strlen(title)*8)/2, y+8, BLACK, title);
 }
@@ -293,14 +312,14 @@ void __Draw_Message(const char* title, int ret) {
 	int i;
 
 	MRC_Draw_Texture(0, 0, textures[TEX_BACKGROUND]);
-	sprintf(tempString, "IOS_%d v_%d", IOS_GetVersion(), IOS_GetRevision());
-	MRC_Draw_Box(25, 425, 120, 25, WHITE - 0x20);
+	sprintf(tempString, "IOS %d v%d", IOS_GetVersion(), IOS_GetRevision());
+	MRC_Draw_Box(29, 429, strlen(tempString)*8 + 1, 17, WHITE);
 	MRC_Draw_String(30, 430, BLACK, tempString);
 	
-	sprintf(tempString, "System_Menu v%s_%s", getsysvernum(systemmenuversion), getregion(systemmenuversion));
-	MRC_Draw_Box(450, 425, 160, 25, WHITE - 0x20);
-	MRC_Draw_String(455, 430, BLACK, tempString);
-	MRC_Draw_Box(20, 150, 600, 48, WHITE-0x20);
+	sprintf(tempString, "System Menu v%s%s", getsysvernum(systemmenuversion), getregion(systemmenuversion));
+	MRC_Draw_Box(459, 429, strlen(tempString)*8 + 2, 17, WHITE);
+	MRC_Draw_String(460, 430, BLACK, tempString);
+	MRC_Draw_Box(20, 150, 600, 48, WHITE);
 	for(i = 0;i < 16; i++){
 		MRC_Draw_Box(20, 200-16+i, 600, 1, i*2);
 		MRC_Draw_Box(20, 200+48+16-i, 600, 1, i*2);
@@ -368,7 +387,7 @@ int __Question_Window(const char* title, const char* text, const char* a1, const
 			break;
 		}
 	}
-	if(debug) logfile("ret question [%i]\n", ret);
+	if(debugcard) logfile("ret question [%i]\n", ret);
 	return ret;
 }
 
@@ -444,7 +463,16 @@ void findnumpages(void) {
 #define MAX_FILELIST_LEN	1024
 #define MAX_FILEPATH_LEN	256
 #define NEEK                4
-
+s32 __themeCmp(const void *a, const void *b){
+	ModTheme *hdr1 = (ModTheme *)a;
+	ModTheme *hdr2 = (ModTheme *)b;
+	
+	if (hdr1->type == hdr2->type){
+		return strcmp(hdr1->title, hdr2->title);
+	}else{
+		return 0;
+	}
+}
 const char *getappname(u32 systemmenuversion) {
 	switch(systemmenuversion){
 		case 417: return "00000072.app";// usa
@@ -592,8 +620,6 @@ const char *getsysvernum(u32 num) {
         break;
     }
 }
-
-
 u32 GetSysMenuVersion() {
     //Get sysversion from TMD
     u64 TitleID = 0x0000000100000002LL;
@@ -626,7 +652,7 @@ u32 GetSysMenuVersion() {
     }
     return version;
 }
-u32 filelist_retrieve(bool avail_list) {
+u32 filelist_retrieve(bool downloadable_theme_list) {
 	//static char filelist[MAX_FILELIST_LEN];
     char dirpath[MAX_FILEPATH_LEN];
     //char dirpath2[ISFS_MAXPATH + 1];
@@ -639,7 +665,7 @@ u32 filelist_retrieve(bool avail_list) {
 	needloading = true;
 	//dirent_t *neeklist = NULL;
 	//u32 neekcount;
-	if(avail_list) {
+	if(downloadable_theme_list) {
 		for(fu = 0; fu < MAXTHEMES; fu++){
 			if(DBThemelist[fu] == NULL)
 				break;
@@ -648,82 +674,73 @@ u32 filelist_retrieve(bool avail_list) {
 		for(ff = 0; ff < cnt; ff++){
 			if(needloading) __Draw_Loading();
 			ThemeList[ff].title = DBThemelist[ff];
+			ThemeList[ff].titlenospace = DBThemelist_nospaces[ff];
 			ThemeList[ff].type = 10;
-			//if(netconnection) ThemeList[ff].downloadcount = retrieve_downloadcount();
+			ThemeList[ff].size = 0;
+			ThemeList[ff].version = 0;
+			ThemeList[ff].region = NULL;
+			ThemeList[ff].downloadcount = -1;
 			//gprintf("theme =%s .type%d %d \n",ThemeList[ff].title, ThemeList[ff].type,ff);
 		}
 		
 		//goto end;
     }
 	else {
-	//Generate dirpath 
+		//Generate dirpath 
 
-    DIR *dir;
-	sprintf(dirpath, "%s:/themes", getdevicename(thememode));
-	if(debug) logfile("dirpath[%s]\n", dirpath);
-    /*else if(i == 4)  // usb(uneek nand)
-    {
-        sprintf(dirpath2, "/themes");
-        gprintf("USBPathuneek: %s\n",dirpath2);
-        rtn = getdir(dirpath2,&neeklist,&neekcount);
-        if(rtn < 0)
-        {
-            gprintf("rtn getfilesuneek (%d) \n",rtn);
-            sysHBC();
-        }
-        else
-        {
-            gprintf("going to end \n");
-			for(x = 0;x < themecnt;x++){
-				gprintf("neeklist[x].name(%s) \n",neeklist[x].name);
-				
+		DIR *dir;
+		sprintf(dirpath, "%s:/themes", getdevicename(thememode));
+		if(debugcard) logfile("dirpath[%s]\n", dirpath);
+		
+		
+		/* Open directory */
+
+		dir = opendir(dirpath);
+		themedir = "themes";
+		if (!dir)
+		{
+			sprintf(dirpath, "%s:/modthemes", getdevicename(thememode));
+			dir = opendir(dirpath);
+			themedir = "modthemes";
+			if (!dir) {
+				if(debugcard) logfile("Unable to open %s \n", getdevicename(thememode));
+				return -1;
 			}
-        }
-		goto end;
-    }
-	
-	
-     Open directory */
-
-    dir = opendir(dirpath);
-    if (!dir)
-    {
-        //gprintf("could not open dir(%s)\n",dirpath);
-        return -1;
-    }
-	cnt = 0;
-	//if(debug) logfile("cnt[%u]\n", cnt);
-    // Get directory entries 
-    while((entry = readdir(dir))) // If we get EOF, the expression is 0 and
-                                     // the loop stops. 
-    {
-		if(strncmp(entry->d_name, ".", 1) != 0 && strncmp(entry->d_name, "..", 2) != 0)
-		cnt += 1;
-    }
-	//if(debug) logfile("2-cnt2[%u]\n", cnt2);
-	rewinddir(dir);
-	ent = allocate_memory(sizeof(dirent_t) * cnt);
-	cnt = 0;
-	//if(debug) logfile("3-cnt2[%u]\n", cnt2);
-	while((entry = readdir(dir))) // If we get EOF, the expression is 0 and
-                                     // the loop stops. 
-    {
-		if(needloading) __Draw_Loading();
-		if(strncmp(entry->d_name, ".", 1) != 0 && strncmp(entry->d_name, "..", 2) != 0){
-			strcpy(ent[cnt].name, entry->d_name);//, sizeof(entry->d_name));
-			ThemeList[cnt].title = ent[cnt].name;
-			ThemeList[cnt].type = 20;
-			//gprintf("theme =%s .type%d \n",ThemeList[themecnt].title, ThemeList[themecnt].type);
-			cnt += 1;
 			
 		}
-    }
-	//qsort(ThemeList, cnt, sizeof(dirent_t), __FileCmp);
-	closedir(dir);
+		cnt = 0;
+		//if(debugcard) logfile("cnt[%u]\n", cnt);
+		// Get directory entries 
+		while((entry = readdir(dir))) // If we get EOF, the expression is 0 and
+										 // the loop stops. 
+		{
+			if(strncmp(entry->d_name, ".", 1) != 0 && strncmp(entry->d_name, "..", 2) != 0)
+			cnt += 1;
+		}
+		//if(debugcard) logfile("2-cnt2[%u]\n", cnt2);
+		rewinddir(dir);
+		ent = allocate_memory(sizeof(dirent_t) * cnt);
+		cnt = 0;
+		//if(debugcard) logfile("3-cnt2[%u]\n", cnt2);
+		while((entry = readdir(dir))) // If we get EOF, the expression is 0 and
+										 // the loop stops. 
+		{
+			if(needloading) __Draw_Loading();
+			if(strncmp(entry->d_name, ".", 1) != 0 && strncmp(entry->d_name, "..", 2) != 0){
+				strcpy(ent[cnt].name, entry->d_name);//, sizeof(entry->d_name));
+				ThemeList[cnt].title = ent[cnt].name;
+				ThemeList[cnt].type = 20;
+				//gprintf("theme =%s .type%d \n",ThemeList[themecnt].title, ThemeList[themecnt].type);
+				cnt += 1;
+				
+			}
+		}
+		qsort(ThemeList, cnt, sizeof(ModTheme), __themeCmp);
+		closedir(dir);
 	}
 	
 	needloading = false;
-	if(debug) logfile("cnt[%u]\n", cnt);
+	if(debugcard) logfile("cnt[%u]\n", cnt);
     return cnt;
 }
 
@@ -843,7 +860,7 @@ void __Free_Channel_Images(void){
 }
 void __Finish_ALL_GFX(void) {
 	int i;
-	if(thememode)
+	if(thememode >= 0)
 	__Free_Channel_Images();
 
 	for(i=0; i<MAX_TEXTURES; i++){
@@ -875,7 +892,7 @@ void __Load_Images_From_Page(void) {
 			if(ThemeList[theme].type == 20)
 				sprintf(tempString,"%s:/config/wiithememanager/imgs/%s.png",getdevicename(thememode), ThemeList[theme].title);
 			if(ThemeList[theme].type == 10)
-				sprintf(tempString,"%s:/config/wiithememanager/imgs/%s", getdevicename(thememode), DBlistpng[theme]);
+				sprintf(tempString,"%s:/config/wiithememanager/imgs/%s", getdevicename(thememode), Theme_Png[theme]);
 			ret = Fat_ReadFile(tempString, &imgBuffer, 1);
 			//gprintf("ret from fat read images %d\n",ret);
 			
@@ -900,27 +917,28 @@ void __Load_Images_From_Page(void) {
 
 
 
-void __Load_Skin_From_FAT(void) {
+void __load_textures(void) {
 	const char* fileNames[MAX_TEXTURES]={
 		"_arrows", "_background", (wideScreen? "_container_wide" : "_container"), "_empty",
-		"_loading", "_numbers"};
+		"_loading", "_numbers"}; //, "_qmark"};
 	const u8* defaultTextures[MAX_TEXTURES]={
 		wiithememanager_arrows_png, wiithememanager_background_png, (wideScreen? wiithememanager_container_wide_png : wiithememanager_container_png), wiithememanager_empty_png,
-		wiithememanager_loading_png, wiithememanager_numbers_png};
+		wiithememanager_loading_png, wiithememanager_numbers_png}; //, wiithememanager_qmark_png};
 
 	int i, ret;
 	char *imgData = NULL;
 
 	for(i = 0; i < MAX_TEXTURES; i++){
-		sprintf(tempString, "%s:/config/wiithememanager/wiithememanager%s.png", getdevicename(thememode), fileNames[i]);
-		ret = Fat_ReadFile(tempString, (void*)&imgData, 0);
-		if(ret>0) {
-			textures[i] = MRC_Load_Texture(imgData);
-			free(imgData);
+		if(thememode == -1) {
+			textures[i] = MRC_Load_Texture((void *)defaultTextures[i]);
 		}
 		else {
-			textures[i] = MRC_Load_Texture((void *)defaultTextures[i]);
-			
+			sprintf(tempString, "%s:/config/wiithememanager/wiithememanager%s.png", getdevicename(thememode), fileNames[i]);
+			ret = Fat_ReadFile(tempString, (void*)&imgData, 0);
+			if(ret>0) {
+				textures[i] = MRC_Load_Texture(imgData);
+				free(imgData);
+			}
 		}
 	}
 
@@ -1002,10 +1020,10 @@ s32 InstallFile(FILE * fp) {
 	ISFS_Seek(nandfile, 0, SEEK_SET);
 	
 	length = filesize(fp);
-	if(debug) logfile("length of file %d \n",length);
+	if(debugcard) logfile("length of file %d \n",length);
 	numchunks = length/CHUNKS + ((length % CHUNKS != 0) ? 1 : 0);
 	
-	if(debug) logfile("[+] Total parts: %d\n", numchunks);
+	if(debugcard) logfile("[+] Total parts: %d\n", numchunks);
 	
 	for(i = 0; i < numchunks; i++)
 	{
@@ -1019,14 +1037,14 @@ s32 InstallFile(FILE * fp) {
 		
 		sprintf(ms,"Installing part %d of %d parts ,",i + 1, numchunks);
 
-		if(debug) logfile("	Installing part %d\n",(i + 1) );
+		if(debugcard) logfile("	Installing part %d\n",(i + 1) );
 
 		__Draw_Message(ms,0);
 		
 		ret = fread(data, 1, CHUNKS, fp);
 		if (ret < 0) 
 		{
-			if(debug) logfile("[-] Error reading from SD! (ret = %d)\n\n", ret);
+			if(debugcard) logfile("[-] Error reading from SD! (ret = %d)\n\n", ret);
 			
 			//gprintf("	Press any button to continue...\n");
 			return -1;
@@ -1039,7 +1057,7 @@ s32 InstallFile(FILE * fp) {
 		ret = ISFS_Write(nandfile, data, cursize);
 		if(ret < 0)
 		{
-			if(debug) logfile("[-] Error writing to NAND! (ret = %d)\n\n", ret);
+			if(debugcard) logfile("[-] Error writing to NAND! (ret = %d)\n\n", ret);
 			//gprintf("	Press any button to continue...\n");
 			return ret;
 		}
@@ -1054,24 +1072,94 @@ s32 InstallFile(FILE * fp) {
 	return 0;
 }
 
+/*
+bool checkofficialthemesig(const char * name) {
+	char filepath[256];
+    FILE *fp = NULL;
+    u32 length, i;
+    u8 *themedata = NULL;
+	//int readsiglen = strlen(name);
+	//char readsig[readsiglen];
+	
+	sprintf(filepath, "%s:/%s/%s", getdevicename(thememode), themedir, name);
+    fp = fopen(filepath, "rb");
+    if (!fp) {
+        printf("unable to open path\n");
+		return 0;
+	}
+    length = filesize(fp);
+    themedata = allocate_memory(length);
+    memset(themedata,0,length);
+    fread(themedata,1,length,fp);
+	fclose(fp);
+	//themesize = length;
+    if(length <= 0) {
+        printf("[-] Unable to read file !! \n");
+		//logfile("[-] Unable to read file !! \n");
+        return 0;
+    }
+	else {
+		if(((themedata[2256] == 0) && (themedata[2334] == 85)) || ((themedata[2256] == 0) && (themedata[2334] == 69)) || ((themedata[2256] == 0) && (themedata[2334] == 75))) {
+			official_theme = 1;
+			sigchecked = true;
+			free(themedata);
+			return true;
+		}
+		if((themedata[17648] == 0) && (themedata[17726] == 74)) {
+			official_theme = 1;
+			sigchecked = true;
+			free(themedata);
+			return true;
+		}
+		for(i = 0; i < length; i++) {
+			if((themedata[i] == 119) && (themedata[i+15] == 169) && (themedata[i+26] == 57)) {
+				//logfile("foundsig\n");
+				if((themedata[i] == 119) && (themedata[i + 8] == 114)) { // w_______r
+					official_theme = 2;
+				}
+				if((themedata[i] == 119) && (themedata[i + 8] == 109)) { // w_____________r
+					official_theme = 3;
+				}
+				
+				
+				//logfile("official_theme[%d]\n", official_theme);
+				sigchecked = true;
+				free(themedata);
+				return true;
+			}
+			if((themedata[i] == 77) && (themedata[i + 1] == 111) && (themedata[i + 2] == 100) && (themedata[i + 3] == 77) && (themedata[i + 4] == 105) && (themedata[i + 5] == 105)) { //M_________________________k
+				official_theme = 4;
+				sigchecked = true;
+				free(themedata);
+				return true;
+			}
+		}
+	}
+	free(themedata);
+	return false;
+}
+*/
 bool installregion(u32 inputversion) {
 	switch(inputversion) {
 		case 416:
 		case 448:
 		case 480:
 		case 512:
+		case 608:
 			ThemeList[orden[selectedtheme]].region = (u8*)74;
 			break;
 		case 417:
 		case 449:
 		case 481:
 		case 513:
+		case 609:
 			ThemeList[orden[selectedtheme]].region = (u8*)85;
 			break;
 		case 418:
 		case 450:
 		case 482:
 		case 514:
+		case 610:
 			ThemeList[orden[selectedtheme]].region = (u8*)69;
 			break;
 		case 454:
@@ -1081,12 +1169,12 @@ bool installregion(u32 inputversion) {
 			break;
 		default:
 			ThemeList[orden[selectedtheme]].region = 0;
-			return 0;
+			return false;
 		break;
 	}
-	return 1;
+	return true;
 }
-u32 findinstallthemeversion(char * name) { 
+u32 findinstallthemeversion(const char * name) { 
 	char filepath[256];
     FILE *fp = NULL;
     u32 length, i, rtn = 0;
@@ -1095,7 +1183,7 @@ u32 findinstallthemeversion(char * name) {
 	sprintf(filepath, "%s:/themes/%s", getdevicename(thememode), name);
     fp = fopen(filepath, "rb");
     if (!fp) {
-        if(debug) logfile("unable to open path\n");
+        if(debugcard) logfile("unable to open path\n");
 		return 0;
 	}
     length = filesize(fp);
@@ -1105,8 +1193,8 @@ u32 findinstallthemeversion(char * name) {
 	fclose(fp);
 	
     if(length <= 0) {
-        if(debug) logfile("[-] Unable to read file !! \n");
-		//if(debug) logfile("[-] Unable to read file !! \n");
+        if(debugcard) logfile("[-] Unable to read file !! \n");
+		//if(debugcard) logfile("[-] Unable to read file !! \n");
         return 0;
     }
     else {
@@ -1114,13 +1202,17 @@ u32 findinstallthemeversion(char * name) {
         {
             if(data[i] == 83)
             {
-                if(data[i+6] == 52)  // 4
+                if(debugcard) logfile("data at [%d]\n", i);
+				if(data[i+6] == 52)  // 4
                 {
-                    if(data[i+8] == 48)  // 0
+                    if(debugcard) logfile("data at [%d]\n", i);
+					if(data[i+8] == 48)  // 0
                     {
-                        if(data[i+28] == 85)  // usa
+                        if(debugcard) logfile("data at [%d]\n", i);
+						if(data[i+28] == 85)  // usa
                         {
-                            rtn = 417;
+                            if(debugcard) logfile("data at [%d]\n", i);
+							rtn = 417;
                            // rtn.region = 85;
                             break;
                         }
@@ -1168,7 +1260,8 @@ u32 findinstallthemeversion(char * name) {
                     {
                         if(data[i+28] == 85)  // usa
                         {
-                            rtn = 481;
+                            if(debugcard) logfile("data at [%d]\n", i);
+							rtn = 481;
                             //rtn.region = 85;
                             break;
                         }
@@ -1220,6 +1313,7 @@ u32 findinstallthemeversion(char * name) {
                     }
                 }
             }
+			// add vwii here
         }
     }
 	free(data);
@@ -1261,6 +1355,12 @@ int currentthemeregion(){
 		break;
 		case 518: rtn = 75;
 		break;
+		case 608: rtn = 74;
+		break;
+		case 609: rtn = 85;
+		break;
+		case 610: rtn = 69;
+		break;
 	}
 	return rtn;
 }
@@ -1279,14 +1379,14 @@ int __install_Theme() {  // install.app .csm file
 	__Draw_Message(start,0);
 	
 	sprintf(filepath, "%s:/themes/%s", getdevicename(thememode), ThemeList[orden[selectedtheme]].title);
-	if(debug) logfile("filepath (%s) \n",filepath);
+	if(debugcard) logfile("filepath (%s) \n",filepath);
 	curthemestats.version = GetSysMenuVersion();
-	if(curthemestats.version > 518) curthemestats.version = checkcustomsystemmenuversion();
+	if(curthemestats.version > 610) curthemestats.version = checkcustomsystemmenuversion();
 	retreivecurrentthemeregion(curthemestats.version);
-	if(debug) logfile("cur theme .version(%d) .region(%c) \n",curthemestats.version, curthemestats.region);
+	if(debugcard) logfile("cur theme .version(%d) .region(%c) \n",curthemestats.version, curthemestats.region);
 	ThemeList[orden[selectedtheme]].version = findinstallthemeversion(ThemeList[orden[selectedtheme]].title);
     installregion(ThemeList[orden[selectedtheme]].version);
-	if(debug) logfile("install theme .version(%d) .region(%c) \n",ThemeList[orden[selectedtheme]].version,ThemeList[orden[selectedtheme]].region);
+	if(debugcard) logfile("install theme .version(%d) .region(%c) \n",ThemeList[orden[selectedtheme]].version,ThemeList[orden[selectedtheme]].region);
 	
 	if(curthemestats.version != ThemeList[orden[selectedtheme]].version) {
         const char *badversion = "Install can not continue system versions differ ! Press any button to exit.";
@@ -1301,7 +1401,7 @@ int __install_Theme() {  // install.app .csm file
    
     fp = fopen(filepath, "rb");
     if (!fp){
-        if(debug) logfile("[+] File Open Error not on SD!\n");
+        if(debugcard) logfile("[+] File Open Error not on SD!\n");
     }
 	// Install 
     InstallFile(fp);
@@ -1315,17 +1415,19 @@ int __install_Theme() {  // install.app .csm file
 	sleep(2);
 	free(done);
 	done = NULL;
-	return MENU_EXIT_TO_MENU;
+	return MENU_EXIT_SYSTEMMENU;
 }
 
 
 int __Select_Theme(void){
 	int i, j, hotSpot, hotSpotPrev, ret;
-	ret = MENU_EXIT;
+	ret = MENU_EXIT_HBC;
 
-	if(themecnt == 0)
+	if(themecnt < 0) {
+		__Draw_Message("No Files Found .", 0);
+		sleep(3);
 		return MENU_HOME;
-
+	}
 	// Create/restore hotspots
 	for(i = 0; i < ROWS; i++) {
 		for(j = 0;j < COLS[wideScreen]; j++){
@@ -1403,19 +1505,16 @@ int __Select_Theme(void){
 		}
 
 		if(WPAD_ButtonsDown(WPAD_CHAN_0) || PAD_ButtonsDown(0)){
-			if(page>=0 && (((WPAD_ButtonsDown(WPAD_CHAN_0) & WPAD_BUTTON_MINUS) || \
-			(PAD_ButtonsDown(0) & PAD_TRIGGER_L)) || (hotSpot==HOTSPOT_LEFT && \
-			((WPAD_ButtonsDown(WPAD_CHAN_0) & WPAD_BUTTON_A) || (PAD_ButtonsDown(0) \
-			& PAD_BUTTON_A))))){
+			if(((WPAD_ButtonsDown(WPAD_CHAN_0) & WPAD_BUTTON_MINUS) || (PAD_ButtonsDown(0) & PAD_TRIGGER_L)) || (hotSpot==HOTSPOT_LEFT && ((WPAD_ButtonsDown(WPAD_CHAN_0) & WPAD_BUTTON_A) || (PAD_ButtonsDown(0) & PAD_BUTTON_A)))){
 				//gprintf("page = %d maxpages = %d pages = %d\n",page,maxPages,pages);
+				
 				if(page == 0)
 					page = maxPages;
-				
-				page -= 1;
+				page--;
 				ret = MENU_SELECT_THEME;
 				break;
-			}else if(page<maxPages && (((WPAD_ButtonsDown(WPAD_CHAN_0) & WPAD_BUTTON_PLUS) || (PAD_ButtonsDown(0) & PAD_TRIGGER_R)) || (hotSpot==HOTSPOT_RIGHT && ((WPAD_ButtonsDown(WPAD_CHAN_0) & WPAD_BUTTON_A) || (PAD_ButtonsDown(0) & PAD_BUTTON_A))))){
-				page += 1;
+			}else if(((WPAD_ButtonsDown(WPAD_CHAN_0) & WPAD_BUTTON_PLUS) || (PAD_ButtonsDown(0) & PAD_TRIGGER_R)) || (hotSpot==HOTSPOT_RIGHT && ((WPAD_ButtonsDown(WPAD_CHAN_0) & WPAD_BUTTON_A) || (PAD_ButtonsDown(0) & PAD_BUTTON_A)))){
+				page++;
 				if (page >= maxPages)
 					page = 0;
 				ret = MENU_SELECT_THEME;
@@ -1442,9 +1541,6 @@ int __Select_Theme(void){
 const char *getsavename(u32 idx){
     switch(idx)
     {
-    case 289:
-        return "42";// usa
-        break;
     case 417:
         return "72";
         break;
@@ -1456,9 +1552,6 @@ const char *getsavename(u32 idx){
         break;
     case 513:
         return "97";// usa
-        break;
-    case 290:
-        return "45";// pal
         break;
     case 418:
         return "75";
@@ -1472,11 +1565,8 @@ const char *getsavename(u32 idx){
     case 514:
         return "9a";// pal
         break;
-    case 288:
-        return "40";// jpn
-        break;
     case 416:
-        return "70";
+        return "6f";
         break;
     case 448:
         return "78";
@@ -1533,16 +1623,6 @@ const char *getPath(int ind){
     case 1:
         return "http://nus.cdn.shop.wii.com/ccs/download/0000000100000002/tmd.";
         break;
-    case 2:
-        return "http://nus.cdn.shop.wii.com/ccs/download/0000000100000002/0000003f";
-        break;
-    case 3:
-        return "http://nus.cdn.shop.wii.com/ccs/download/0000000100000002/00000042";
-        break;
-    case 4:
-        return "http://nus.cdn.shop.wii.com/ccs/download/0000000100000002/00000045";
-        break;
-    case 5:
         return "http://nus.cdn.shop.wii.com/ccs/download/0000000100000002/0000006f";
         break;
     case 6:
@@ -1595,15 +1675,6 @@ const char *getPath(int ind){
 int getslot(int num){
     switch(num)
     {
-    case 288:
-        return 2;
-        break;
-    case 289:
-        return 3;
-        break;
-    case 290:
-        return 4;
-        break;
     case 416:
         return 5;
         break;
@@ -1655,18 +1726,35 @@ int getslot(int num){
     }
 }
 int __downloadApp(int downloadonly)  {
-    u32 tmpversion;
-    int ret, retries;
+	__Draw_Loading();
+	if(thememode < 0) {
+		if(debugcard) {
+			logfile("__downloadApp - thememode[%d] downloadable_theme_List[%d] netconnection[%d]\n", thememode, downloadable_theme_List, netconnection);
+		}
+		return MENU_HOME;
+	}
+	char *tmpstr = (char*)malloc(256);
+	if(!netconnection) {
+		if(debugcard) {
+			logfile("Internet connection not detected .\n");
+			sprintf(tmpstr,"Unable to connect to internet . Please check Wii Internet settings . ");
+			__Draw_Message(tmpstr, 0);
+			sleep(5);
+			free(tmpstr);
+		}
+		return MENU_HOME;
+	}
+	u32 tmpversion;
+    int ret; //, retries;
     int counter;
     char *savepath = (char*)memalign(32,256);
-	char *tmpstr = (char*)malloc(256);
+	
 	char *tmpstr2 = (char*)malloc(256);
 	signed_blob * s_tik = NULL;
     signed_blob * s_tmd = NULL;
-		
-	__Draw_Loading();
+	
     tmpversion = GetSysMenuVersion();
-    if(tmpversion > 518) tmpversion = checkcustomsystemmenuversion();
+    if(tmpversion > 610) tmpversion = checkcustomsystemmenuversion();
 	sprintf(tmpstr2,"%s:/themes/%s", getdevicename(thememode), getappname(tmpversion));
 	if(!Fat_CheckFile(tmpstr2)){
 		sprintf(tmpstr,"Downloading %s for System Menu v%u ", getappname(tmpversion), tmpversion);
@@ -1674,8 +1762,9 @@ int __downloadApp(int downloadonly)  {
 		sleep(1);
 		__Draw_Loading();
 		sprintf(tmpstr,"%s:/themes", getdevicename(thememode));
+		//if(!Fat_CheckFile(tmpstr))
 		Fat_MakeDir(tmpstr);
-		sprintf(tmpstr,"Initializing  Network ....");
+		/*sprintf(tmpstr,"Initializing  Network ....");
 		__Draw_Message(tmpstr, 0);
 		sleep(1);
 		for(retries = 0; retries < 5; ++retries) {
@@ -1695,7 +1784,7 @@ int __downloadApp(int downloadonly)  {
 				sleep(1);
 				break;
 			}
-		}
+		}*/
 		for(counter = 0; counter < 3; counter++) {	
 			__Draw_Loading();
 			if(counter == 0 || counter == 1) sprintf(tmpstr,"DownLoading %s File .", appfilename[counter]);
@@ -1740,7 +1829,15 @@ int __downloadApp(int downloadonly)  {
 					//then decrypt buffer
 					decrypt_buffer(index,outbuf,outbuf2,outlen);
 					sprintf(savepath,"%s:/themes/%s", getdevicename(thememode), getappname(tmpversion));
+					sprintf(tmpstr,"Saving %s .", getappname(tmpversion));
+					__Draw_Message(tmpstr,0);
+					sleep(1);
 					ret = Fat_SaveFile(savepath, (void *)&outbuf2, outlen);
+					if(ret <= 0) {
+						sprintf(tmpstr,"Saving %s Failed .", getappname(tmpversion));
+						__Draw_Message(tmpstr,0);
+						sleep(2);
+					}
 				}
 			}
 			sprintf(tmpstr,"Decryption  Complete !");
@@ -1756,64 +1853,109 @@ int __downloadApp(int downloadonly)  {
 		sleep(2);
 	}
 	
-end:
+//end:
 
 	//free(oldapp);
 	free(savepath);
 	free(tmpstr);
 	free(tmpstr2);
 	
-	return MENU_SELECT_THEME;
+	return MENU_HOME;
 }
 
 
-char *retrieve_downloadcount() {
-	char *count = "0";
-	int ret, retries;
+int retrieve_themefilesize(int pos) {
+	char *size = "0";
+	int ret;
 	char sitepath[512];
 	const char *siteUrl = "http://wiithemer.org/wii/index.php?action=";
 	u32 outlen = 0;
 	u32 http_status = 0;
 	u32 Maxsize = 4294967295;
 	u8* outbuf = NULL;
-	logfile("in retreive downloadcount\n");
+	int convert_to_int = 0;
 	
-	for(retries = 0; retries < 5; ++retries) {
-		ret = net_init();
-		
-		if(ret == 0){
-			//netconnection = true;
-			break;
-		}
-	}
+	if(debugcard) logfile("in retrieve_themefilesize\n");
 	
-	sprintf(sitepath, "%s%s&themetocheck=%s", siteUrl, "getdownloadcount", DBThemelist_nospaces[selectedtheme]);
-	if(debug) logfile("sitepath[%s]\n", sitepath);
+	__Draw_Loading();
+	sprintf(sitepath, "%s%s&themetocheck=%s", siteUrl, "getthemefilesize", DBThemelist_nospaces[pos]);
+	if(debugcard) logfile("sitepath[%s]\n", sitepath);
 	ret = http_request(sitepath, Maxsize);
 	if(ret != 0 ) {
 		ret = http_get_result(&http_status, &outbuf, &outlen);
 		if(ret != 0 ) {
-			char output[outlen];
 			if(outlen > 0 && http_status == 200) {
-				memcpy(output, outbuf, outlen);
-				output[outlen] = 0;
-				if(debug) logfile("%s\n", output);
-				//strcpy(count, "downloads ");
-				strcpy(count, output);
-				return count;
+				size = (char*)outbuf;
+				
+				if(debugcard) logfile("size = %s\n", size);
+				convert_to_int = atoi(size);
+				if(debugcard) logfile("convert_to_int[%d]\n", convert_to_int);
+				sprintf(size, "%d", convert_to_int);
+				if(debugcard) logfile("size[%s]\n", size);
 			}
 		}
 	}
-	return count;
+	__Draw_Loading();
+	return convert_to_int;
 }
-#define PROJECTION_HEIGHT 64
+int retrieve_downloadcount(int pos) {
+	char *count = "0";
+	int ret;
+	char sitepath[512];
+	const char *siteUrl = "http://wiithemer.org/wii/index.php?action=";
+	u32 outlen = 0;
+	u32 http_status = 0;
+	u32 Maxsize = 4294967295;
+	u8* outbuf = NULL;
+	int convert_to_int = 0;
+	
+	if(debugcard) logfile("in retreive downloadcount\n");
+	
+	__Draw_Loading();
+	sprintf(sitepath, "%s%s&themetocheck=%s", siteUrl, "getdownloadcount", DBThemelist_nospaces[pos]);
+	if(debugcard) logfile("sitepath[%s]\n", sitepath);
+	ret = http_request(sitepath, Maxsize);
+	if(ret != 0 ) {
+		ret = http_get_result(&http_status, &outbuf, &outlen);
+		if(ret != 0 ) {
+			if(outlen > 0 && http_status == 200) {
+				count = (char*)outbuf;
+				if(debugcard) logfile("count = %s\n", count);
+				convert_to_int = atoi(count);
+				if(debugcard) logfile("convert_to_int[%d]\n", convert_to_int);
+				sprintf(count, "%d", convert_to_int);
+				if(debugcard) logfile("count[%s]\n", count);
+			}
+		}
+	}
+	__Draw_Loading();
+	return convert_to_int;
+}
+#define PROJECTION_HEIGHT 128
+#define MB_SIZE		1048576.0
 int __Show_Theme(){
 	void* imageBuffer;
 	MRCtex *themeImage, *projection;
-	int i, j, ret;
+	int i, j, ret, size = 0;
 	char *c, *r, a;
-	char *count = NULL;
+	int count = -1;
+	char *countstr = NULL;
+	char *sizestr = NULL;
+	char file_size [32] = {"0"};
+	ModTheme *thetheme = &ThemeList[orden[selectedtheme]];
+	char downloadcount[32] = {"0"};
+	char fsize[256];
+	char filepath[256];
+	char checkpath[256];
+	char tmpstr[128];
+	FILE *fptr = NULL;
+	const char *config_dir = "config/wiithememanager/";
+	const char *downloadcount_file = "downloads.txt";
+	const char *filesize_file = "filesize.txt";
+	void* outbuf = NULL;
+	//char *officialthemes[5] = { "Unsigned Theme", "Original Theme Unmodified", "Wii Themer Signed", "Wii Theme Manager Signed", "ModMii Signed"};
 	
+	//if(!sigchecked) checkofficialthemesig(thetheme->title);
 	// BLACK SCREEN
 	/*a=160;
 	for(i=0; i<480; i++){
@@ -1821,33 +1963,115 @@ int __Show_Theme(){
 			a++;
 		MRC_Draw_Box(0, i, 640, 1, a);
 	}*/
-	//
-	if(availList)
-		count = retrieve_downloadcount();
+	
+	if(downloadable_theme_List) {
+		__Draw_Loading();
+		/*
+		if(netconnection) {
+		//if(debugcard) logfile("- downloadcount[%d]\n", thetheme->downloadcount);
+		sprintf(checkpath, "%s:/%s%s/%s", getdevicename(thememode), config_dir, thetheme->titlenospace, downloadcount_file);
+		if(ThemeList[orden[selectedtheme]].downloadcount == -1) {
+			//if(debugcard) logfile("checkpath[%s]\n", checkpath);
+			if(!Fat_CheckFile(checkpath)) {
+				ThemeList[orden[selectedtheme]].downloadcount = retrieve_downloadcount(selectedtheme);
+				//if(debugcard) logfile("count[%d]\n", thetheme->downloadcount);
+				sprintf(tmpstr, "%s:/%s%s", getdevicename(thememode), config_dir, thetheme->titlenospace);
+				Fat_MakeDir(tmpstr);
+				fptr = fopen(checkpath, "w+");
+				sprintf(downloadcount, "%d", ThemeList[orden[selectedtheme]].downloadcount);
+				ret = fputs(downloadcount, fptr);
+				fclose(fptr);
+				sprintf(downloadcount, "Downloads %d", ThemeList[orden[selectedtheme]].downloadcount);
+				//if(debugcard) logfile("downloads.txt not found - downloadcount[%s]\n", downloadcount);
+			}
+			else {
+				//if(debugcard) logfile("file found - %s\n", checkpath);
+				Fat_ReadFile(checkpath, &outbuf, 1);
+				countstr = (char*)outbuf;
+				//if(debugcard) logfile("countstr[%s]\n", countstr);
+				count = atoi(countstr);
+				sprintf(downloadcount, "Downloads %d", count);
+				//if(debugcard) logfile("downloads.txt found - downloadcount[%s]\n", downloadcount);
+				ThemeList[orden[selectedtheme]].downloadcount = count;
+			}
+		}
+		else { 
+			//if(debugcard) logfile("file found - %s\n", checkpath);
+			Fat_ReadFile(checkpath, &outbuf, 1);
+			countstr = (char*)outbuf;
+			//if(debugcard) logfile("countstr[%s]\n", countstr);
+			count = atoi(countstr);
+			sprintf(downloadcount, "Downloads %d", count);
+			//if(debugcard) logfile("downloads.txt found - downloadcount[%s]\n", downloadcount);
+			ThemeList[orden[selectedtheme]].downloadcount = count;
+		}
+		//if(debugcard) logfile("SIZE: %d\n", ThemeList[orden[selectedtheme]].size);
+		sprintf(checkpath, "%s:/%s%s/%s", getdevicename(thememode), config_dir, thetheme->titlenospace, filesize_file);
+		if(ThemeList[orden[selectedtheme]].size == 0) {
+			if(!Fat_CheckFile(checkpath)) {
+				ThemeList[orden[selectedtheme]].size = retrieve_themefilesize(selectedtheme);//atoi(file_size);
+				sprintf(tmpstr, "%s:/%s%s", getdevicename(thememode), config_dir, thetheme->titlenospace);
+				Fat_MakeDir(tmpstr);
+				fptr = fopen(checkpath, "w+");
+				sprintf(file_size, "%d", ThemeList[orden[selectedtheme]].size);
+				//if(debugcard) logfile("file_size[%s] fputs\n", file_size);
+				fputs(file_size, fptr);
+				fclose(fptr);
+				sprintf(file_size, "%s  Size: %.2f MB", thetheme->title, ThemeList[orden[selectedtheme]].size/MB_SIZE);
+			}
+			else {
+				Fat_ReadFile(checkpath, &outbuf, 1);
+				sizestr = (char*)outbuf;
+				size = atoi(sizestr);
+				ThemeList[orden[selectedtheme]].size = size;
+				sprintf(file_size, "%s  Size: %.2f MB", thetheme->title, size/MB_SIZE);
+			}
+		}
+		else {
+			Fat_ReadFile(checkpath, &outbuf, 1);
+			sizestr = (char*)outbuf;
+			size = atoi(sizestr);
+			ThemeList[orden[selectedtheme]].size = size;
+			sprintf(file_size, "%s  Size: %.2f MB", thetheme->title, size/MB_SIZE);
+		}
+		}
+		*/
+	}
+	else {
+		__Draw_Loading();
+		sprintf(filepath, "%s:/%s/%s", getdevicename(thememode), themedir , thetheme->title);
+		//if(debugcard) logfile("filepath[%s]\n", filepath);
+		fptr = fopen(filepath, "rb");
+		if(!fptr) logfile("unable to open path[%s]\n", filepath);
+		size = filesize(fptr);
+		fclose(fptr);
+		sprintf(fsize, "%s  Size: %.2f MB", thetheme->title, size/MB_SIZE);
+	}
+	__Draw_Loading();
 	// ANOTHER SCREEN FADE TYPE
 	a=200;
-	for(i=0; i<480; i++){
+	for(i=0; i<480; i++) {
 		if(a<255 && ((i<100 && i%4==0) || (i>200 && i%8==0)))
 			a++;
 		MRC_Draw_Box(0, i, 640, 1, 0x20202000+a);
 	}
 
-	ModTheme *thetheme = &ThemeList[orden[selectedtheme]];
+	
 	// Load image from FAT
 	if(ThemeList[selectedtheme].type == 20)
-		sprintf(tempString,"%s:/" WIITHEMEMANAGER_PATH IMAGES_PREFIX "/%s.png",getdevicename(thememode) , thetheme->title);
+		sprintf(tempString,"%s:/" WIITHEMEMANAGER_PATH IMAGES_PREFIX "/%s.png", getdevicename(thememode) , thetheme->title);
 	if(ThemeList[selectedtheme].type == 10)
-		sprintf(tempString,"%s:/config/wiithememanager/imgs/%s" ,getdevicename(thememode),DBlistpng[orden[selectedtheme]]);
+		sprintf(tempString,"%s:/config/wiithememanager/imgs/%s" , getdevicename(thememode),Theme_Png[orden[selectedtheme]]);
 		
 	//gprintf("tempstring %s \n",tempString);
 	ret = Fat_ReadFile(tempString, &imageBuffer, needloading);
 	// Decode image
-	if(ret > 0){
+	if(ret > 0) {
 		themeImage = MRC_Load_Texture(imageBuffer);
 		free(imageBuffer);
 
-		MRC_Resize_Texture(themeImage, (wideScreen? 580 : 640), 340);
-		//__MaskBanner(themeImage);
+		MRC_Resize_Texture(themeImage, (wideScreen ? 640 : 580), 325);
+		__MaskBanner(themeImage);
 		//MRC_Center_Texture(themeImage, 1);
 		projection = allocate_memory(sizeof(MRCtex));
 		projection->buffer=allocate_memory(themeImage->width*PROJECTION_HEIGHT*4);
@@ -1872,183 +2096,249 @@ int __Show_Theme(){
 				a-=4;
 		}
 	
-		MRC_Draw_Texture(40, 40, themeImage);
-		//MRC_Draw_Texture(175, 275, projection);
-		MRC_Draw_String(((640-strlen(thetheme->title))/2), 400, WHITE, thetheme->title);
-		sprintf(tempString, "%s%s", "Downloads ", count);
-		if(availList)
-			MRC_Draw_String( 500, 400, WHITE, tempString);
+		MRC_Draw_Texture(0, 0, themeImage);
+		MRC_Draw_Texture(320, 375, projection);
+		
+		
+		if(downloadable_theme_List) {
+			if(netconnection) {
+				MRC_Draw_String(((640-strlen(fsize)*8)/2), 400, WHITE, file_size);
+				MRC_Draw_String(((640-strlen(fsize)*8)/2), 420, WHITE, downloadcount);
+			}
+			else MRC_Draw_String(((640-strlen(thetheme->title))/2), 420, WHITE, thetheme->title);
+		}
+		else {
+			MRC_Draw_String(((640-strlen(fsize))/2), 400, WHITE, fsize);
+		}
 		//MRC_Draw_String(30, 330, WHITE, "By ");
-		sprintf(tempString, "%s", (availList == 1 ? "[A] - Download Theme" : "[A] - Install Theme"));
+		sprintf(tempString, "%s", (downloadable_theme_List == 1 ? "[A] - Download Theme" : "[A] - Install Theme"));
 		MRC_Draw_String(40, 400, WHITE, tempString);
 		MRC_Draw_String(40, 420, WHITE, "[B] - Back");
 		MRC_Free_Texture(themeImage);
 		MRC_Free_Texture(projection);
 	}
 	else{
-		sprintf(tempString, "%s", (availList == 1 ? "[A] - Download Theme" : "[A] - Install Theme"));
-		MRC_Draw_String(30, 360, WHITE, tempString);
-		MRC_Draw_String(30, 390, WHITE, "[B] - Back");
-		sprintf(tempString, "%s%s", "Downloads ", count);
-		if(availList)
-			if(netconnection) MRC_Draw_String( 500, 400, WHITE, tempString);
-		MRC_Draw_String((640-strlen(thetheme->title)*8)/2, 250, WHITE, thetheme->title);
+		sprintf(tempString, "%s", (downloadable_theme_List == 1 ? "[A] - Download Theme" : "[A] - Install Theme"));
+		MRC_Draw_String(30, 400, WHITE, tempString);
+		MRC_Draw_String(30, 420, WHITE, "[B] - Back");
+		if(downloadable_theme_List) {
+			if(netconnection) {
+				MRC_Draw_String(((640-strlen(fsize)*8)/2), 400, WHITE, file_size);
+				MRC_Draw_String(((640-strlen(fsize)*8)/2), 420, WHITE, downloadcount);
+			}
+			else MRC_Draw_String(((640-strlen(thetheme->title)*8)/2), 420, WHITE, thetheme->title);
+		}
+		else {
+			MRC_Draw_String(((640-strlen(fsize)*8)/2), 400, WHITE, fsize);
+			//sprintf(tempString, "Theme Signature : %s", officialthemes[official_theme]);
+			//MRC_Draw_String(((640-strlen(tempString)*8)/2), 380, WHITE, tempString);
+		}
 	}
 	MRC_Render_Screen();
 	int answer = -1;
 	
 	ret = MENU_SELECT_THEME;
-	for(;;){
+	for(;;) {
 		WPAD_ScanPads();
 		PAD_ScanPads();
 		if(WPAD_ButtonsDown(WPAD_CHAN_0) || PAD_ButtonsDown(0)){
 			if((WPAD_ButtonsDown(WPAD_CHAN_0) & WPAD_BUTTON_A) || (PAD_ButtonsDown(0) & PAD_BUTTON_A)){
-				if(availList) {
+				if(downloadable_theme_List) {
 					answer = __Spin_Question();
-					if(debug) logfile("answer[%i]\n", answer);
+					if(debugcard) logfile("answer[%i]\n", answer);
 				}
+				
 				ret = MENU_INSTALL_THEME;
 				break;
 			}
 			if((WPAD_ButtonsDown(WPAD_CHAN_0) & WPAD_BUTTON_B) || (PAD_ButtonsDown(0) & PAD_BUTTON_B)){
 				//ret = MENU_SELECT_THEME;
+				//official_theme = 0;
+				//sigchecked = false;
 				break;
 			}
 		}
 		
 	}
 	spinselected = answer;
+	//free(downloadcount);
 	return ret;
 }
 
 
 #define HOME_BUTTON_X			210
-#define HOME_BUTTON_Y			135
+#define HOME_BUTTON_Y			125
 #define HOME_BUTTON_WIDTH		220
 #define HOME_BUTTON_HEIGHT		30
 #define HOME_BUTTON_SEPARATION	5
 int __Home(void) {
 	int i, hotSpot, hotSpotPrev, ret;
 	bool repaint = true;
-
+	//char message[256];
 	// Create/restore hotspots
 	Wpad_CleanHotSpots();
-	for(i = 0; i < 6; i++){
+	for(i = 0; i < 7; i++){
 		Wpad_AddHotSpot(i,
 			HOME_BUTTON_X,
 			HOME_BUTTON_Y+i*(HOME_BUTTON_HEIGHT+HOME_BUTTON_SEPARATION),
 			HOME_BUTTON_WIDTH,
 			HOME_BUTTON_HEIGHT,
-			(i == 0 ? 5 : i - 1),
+			(i == 0 ? 6 : i - 1),
 			(i == 6 ? 0 : i + 1),
 			i, i
 		);
 	}
-
-
-	__Draw_Window(HOME_BUTTON_WIDTH + 44, 240, "Options");
-
-	//sprintf(tempString, "IOS_%d v_%d", IOS_GetVersion(), IOS_GetRevision());
-	//MRC_Draw_String(250, 380, BLACK, tempString);
-	//MRC_Draw_String(10, 440, 0x505050ff, lang[9+thememode]);
-	//sprintf(tempString, "wiithememanager v_%d - by Scooby74029", wiithememanager_VERSION);
-	//MRC_Draw_String(210, 350, BLACK, tempString);
-
-	// Loop
+	__Draw_Window(HOME_BUTTON_WIDTH + 45, 300, "Options");
+	sprintf(tempString, "Device : %s", getdevicename(thememode));
+	MRC_Draw_String(((640-strlen(tempString)*8)/2), 370, BLACK, tempString);
+	
 	hotSpot = hotSpotPrev = -1;
 
 	ret = MENU_SELECT_THEME;
-	for(;;){
-		hotSpot=Wpad_Scan();
+	for(;;) {
+		hotSpot = Wpad_Scan();
 
 		// If hot spot changed
-		if((hotSpot!=hotSpotPrev && hotSpot<6) || repaint){
-			hotSpotPrev=hotSpot;
-
+		if((((hotSpot != hotSpotPrev) && (hotSpot < 7)) || repaint)) {
+			hotSpotPrev = hotSpot;
 			__Draw_Button(0, "Device Menu", hotSpot == 0);
-			if(availList) __Draw_Button(1, "Install Theme", hotSpot == 1);
-			else __Draw_Button(1, "Download Theme", hotSpot == 1);
-			if(!availList) __Draw_Button(2, "", hotSpot == 2);
-			else __Draw_Button(2, "Download Theme Images", hotSpot == 2);
-			__Draw_Button(3, "Download Original Theme", hotSpot == 3);
-			__Draw_Button(4, "Exit HBC", hotSpot == 4);
+			if(thememode < 0) {
+				__Draw_Button(1, "", hotSpot == 1);
+				__Draw_Button(2, "", hotSpot == 2);
+				__Draw_Button(3, "", hotSpot == 3);
+			}
+			else {
+				//if(downloadable_theme_List) 
+				__Draw_Button(1, "Swap Mode", hotSpot == 1);
+				//else __Draw_Button(1, "Download Mode", hotSpot == 1);
+				if(!downloadable_theme_List) __Draw_Button(2, "", hotSpot == 2);
+				else __Draw_Button(2, "Download Theme Images", hotSpot == 2);
+				if(thememode < 0) __Draw_Button(3, "", hotSpot == 3);
+				else __Draw_Button(3, "Download Original Theme", hotSpot == 3);
+			}
+			__Draw_Button(4, "Exit Hbc", hotSpot == 4);
 			__Draw_Button(5, "Exit System Menu", hotSpot == 5);
+			__Draw_Button(6, "Exit PriiLoader", hotSpot == 6);
 			repaint = false;
 		}
 		MRC_Draw_Cursor(Wpad_GetWiimoteX(), Wpad_GetWiimoteY(), 0);
 		//gprintf("hotSpot = %d \n",hotSpot);
-		if(((WPAD_ButtonsDown(WPAD_CHAN_0) & WPAD_BUTTON_A) || (PAD_ButtonsDown(0) & PAD_BUTTON_A)) && hotSpot>-1 && hotSpot<6){
+		if(((WPAD_ButtonsDown(WPAD_CHAN_0) & WPAD_BUTTON_A) || (PAD_ButtonsDown(0) & PAD_BUTTON_A)) && hotSpot > -1 && hotSpot < 7){
+			__Draw_Loading();
 			if(hotSpot == 0)
 				ret = MENU_MANAGE_DEVICE;
 			else if(hotSpot == 1) {
-				availList ^= 1;
-				ret = MENU_MANAGE_DEVICE;
+				if(thememode >= 0)
+					downloadable_theme_List ^= 1;
+				ret = MENU_SELECT_THEME;
+				if(themecnt > 0) __Free_Channel_Images();
+					themecnt = filelist_retrieve(downloadable_theme_List);
+				__Load_Config();
 			}
 			else if(hotSpot == 2)
-				ret = MENU_DOWNLOAD;
+				ret = MENU_DOWNLOAD_IMAGE;
 			else if(hotSpot == 3)
 				ret = MENU_ORIG_THEME;
 			else if(hotSpot == 4)
-				ret = MENU_EXIT;
+				ret = MENU_EXIT_HBC;
 			else if(hotSpot == 5)
-				ret = MENU_EXIT_TO_MENU;
+				ret = MENU_EXIT_SYSTEMMENU;
+			else if(hotSpot == 6)
+				ret = MENU_EXIT_PRIILOADER;
 			break;
-		}else if(((WPAD_ButtonsDown(WPAD_CHAN_0) & (WPAD_BUTTON_HOME | WPAD_BUTTON_B)) || (PAD_ButtonsDown(0) & (PAD_BUTTON_START | PAD_BUTTON_B)))){
-			//ret = MENU_SELECT_THEME;
+		}
+		else if(((WPAD_ButtonsDown(WPAD_CHAN_0) & (WPAD_BUTTON_HOME | WPAD_BUTTON_B)) || (PAD_ButtonsDown(0) & (PAD_BUTTON_START | PAD_BUTTON_B)))) {
+			if(thememode < 0) ret = MENU_HOME;
 			break;
-		}else{
+		}
+		else {
 			repaint = true;
 		}
 	}
 
 	return ret;
 }
+#define dir_delimter '/'
+#define MAX_FILENAME 512
+#define READ_SIZE 8192
 int __Downloadthemepng() {
-	if(debug) logfile("In download db png \n");
-	char *fatpath = (char*)malloc(256);
-	char *tmpstr = (char*)malloc(256);
-	int i,ret, error = 0;
-	
+	if(debugcard) logfile("__Downloadthemepng() \n");
+	__Draw_Loading();
+	if(thememode < 0) return MENU_HOME;
 	if(!netconnection) return MENU_HOME;
-	if(!availList) return MENU_HOME;
+	if(!downloadable_theme_List) return MENU_HOME;
 	
-	sprintf(tmpstr,"Starting Theme DataBase preview download ....");
-	__Draw_Message(tmpstr,0);
-	sleep(2);
+	char *fatpath = (char*)malloc(1024);
+	char *tmpstr = (char*)malloc(1024);
+	int ret; //, i, error = 0;
+	u32 outlen=0;
+	u32 http_status=0;
+	u32 Maxsize = 4294967290;
+	u8* outbuf = NULL;
 	
-	if(debug) logfile("thememode = %d \n",thememode);
+	
+	__Draw_Loading();
+	if(debugcard) logfile("thememode = %d \n",thememode);
 	sprintf(tmpstr,"%s:/config/wiithememanager/imgs",getdevicename(thememode));
 	if(!Fat_CheckFile(tmpstr))
 		Fat_CreateSubfolder(tmpstr);
-	
-	for(int retries = 0; retries < 5; ++retries){
+	sprintf(fatpath,"%s:/config/wiithememanager/wiithememanagerimages.zip", getdevicename(thememode));
+	if(debugcard) logfile("fatpath(%s) \n",fatpath);
+	if(!Fat_CheckFile(fatpath)) {
+		sprintf(tmpstr,"Starting Theme Image download ....");
+		__Draw_Message(tmpstr,0);
+		sleep(2);
+		/*for(int retries = 0; retries < 5; ++retries){
+			__Draw_Loading();
+			ret = net_init();
+			if(ret < 0 && ret != -EAGAIN) {
+				sprintf(tempString, "ERROR: I can't connect to network . (returned %d)\n",ret);
+				__Draw_Message(tempString, 0);
+				sleep(2);
+			}
+			if(ret == 0) //consigo conexion
+				break;
+			if(retries >= 5){
+				sleep(2);
+				return MENU_HOME;
+			}
+		}*/
 		__Draw_Loading();
-		ret = net_init();
-		if(ret < 0 && ret != -EAGAIN) {
-			sprintf(tempString, "ERROR: I can't connect to network . (returned %d)\n",ret);
-			__Draw_Message(tempString, 0);
-			sleep(2);
-		}
-		if(ret == 0) //consigo conexion
-			break;
-		if(retries >= 5){
-			sleep(2);
-			return 0;
+		sprintf(tmpstr,"Downloading Theme images - wiithememanager.zip .");
+		__Draw_Message(tmpstr,0);
+		sleep(1);
+		__Draw_Loading();
+		sprintf(tempString, "http://wiithemer.org/wii/wiithememanagerimages.zip");
+		if(debugcard) logfile("tempString(%s) \n",tempString);
+		sprintf(fatpath,"%s:/config/wiithememanager/wiithememanagerimages.zip", getdevicename(thememode));
+			if(debugcard) logfile("fatpath(%s) \n",fatpath);
+		ret = http_request(tempString, Maxsize);//Maxsize);
+		if(ret) {
+			ret = http_get_result(&http_status, &outbuf, &outlen);
+			if(ret) {
+				if(outlen > 64) {
+					ret = Fat_SaveFile(fatpath, (void *)&outbuf,outlen);
+					if(ret < 0) {
+						sprintf(tmpstr,"Saving Images Falied !");
+						__Draw_Message(tmpstr,0);
+						sleep(2);
+					}
+				}
+			}
 		}
 	}
-	
-	//if(debug) logfile("themecnt = %d \n",themecnt);
-	__Draw_Loading();
+	/* single image downloading
+	if(!themecnt) themecnt = 73;
 	for(i = 0;i < themecnt; i++){
 		__Draw_Loading();
 		sprintf(tmpstr,"Downloading %d of %d Theme Previews .",i+1,themecnt);
 		__Draw_Message(tmpstr,0);
 		sleep(1);
 		__Draw_Loading();
-		sprintf(tempString, "http://wiithemer.org/wii/wiithememanager/imgs/%s", DBlistpng[i]);
-		if(debug) logfile("tempString(%s) \n",tempString);
-		sprintf(fatpath,"%s:/config/wiithememanager/imgs/%s", getdevicename(thememode), DBlistpng[i]);
-		if(debug) logfile("fatpath(%s) \n",fatpath);
+		sprintf(tempString, "http://wiithemer.org/wii/wiithememanager/imgs/%s", Theme_Png[i]);
+		if(debugcard) logfile("tempString(%s) \n",tempString);
+		sprintf(fatpath,"%s:/config/wiithememanager/imgs/%s", getdevicename(thememode), Theme_Png[i]);
+		if(debugcard) logfile("fatpath(%s) \n",fatpath);
 		__Draw_Loading();
 		if(!Fat_CheckFile(fatpath)){
 			
@@ -2061,7 +2351,7 @@ int __Downloadthemepng() {
 			ret = http_request(tempString, Maxsize);//Maxsize);
 			if(ret == 0 )
 			{
-			//	if(debug) logfile("download failed !! ret(%d)\n",ret);
+			//	if(debugcard) logfile("download failed !! ret(%d)\n",ret);
 				sprintf(tmpstr,"Download %d of %d Theme Previews Failed !",i+1,themecnt);
 				__Draw_Message(tmpstr,0);
 				sleep(3);
@@ -2070,13 +2360,13 @@ int __Downloadthemepng() {
 				//continue;
 			}
 			//else
-			//	if(debug) logfile("Complete !! \n\n");
+			//	if(debugcard) logfile("Complete !! \n\n");
 			__Draw_Loading();
 			ret = http_get_result(&http_status, &outbuf, &outlen); 
 			
 			if(outlen > 64){//suficientes bytes
-				//sprintf(fatpath,"%s:/config/wiithememanager/DBimages/%s", getdevicename(thememode), DBlistpng[i]);
-			//	if(debug) logfile("fatpath(%s) \n",fatpath);
+				//sprintf(fatpath,"%s:/config/wiithememanager/DBimages/%s", getdevicename(thememode), Theme_Png[i]);
+			//	if(debugcard) logfile("fatpath(%s) \n",fatpath);
 				ret = Fat_SaveFile(fatpath, (void *)&outbuf,outlen);
 				if(ret < 0){
 				sprintf(tmpstr,"Saving Preview Falied !");
@@ -2086,7 +2376,7 @@ int __Downloadthemepng() {
 				//continue;
 				}
 				//else
-				//	if(debug) logfile("File Saved \n");
+				//	if(debugcard) logfile("File Saved \n");
 			}
 			__Draw_Loading();	
 			if(outbuf!=NULL)
@@ -2098,34 +2388,154 @@ int __Downloadthemepng() {
 	
 	net_deinit();
 
-	if(debug) logfile("Exiting dbpng \n");
-	sprintf(tmpstr,"Theme DataBase preview download .... Complete .");
+	if(debugcard) logfile("Extract files here \n");
+	sprintf(tmpstr,"Theme Image download Complete .");
 	__Draw_Message(tmpstr,0);
 	sleep(3);
+	*/
+	//u8* buf = NULL;
+	FILE *fptr = NULL;
+	//int size = 0;
+	char outpath[1024];
+	
+	if(Fat_CheckFile(fatpath)) {
+		if(debugcard) logfile("file exists\n");
+		
+		fptr = unzOpen(fatpath);
+		if(!fptr)
+			logfile("unable to open %s", fatpath);
+		else logfile("file opened\n");
+		unz_global_info global_info;
+		if(unzGetGlobalInfo( fptr, &global_info ) != UNZ_OK ) {
+			logfile( "could not read file global info\n" );
+			unzClose( fptr );
+			return MENU_HOME;
+		}
+		logfile("global_info.number_entry(%d)\n", global_info.number_entry);
+		 char read_buffer[ READ_SIZE ];
+		uLong i;
+		for ( i = 0; i < global_info.number_entry; ++i )
+		{
+			__Draw_Loading();
+			unz_file_info file_info;
+			char filename[ MAX_FILENAME ];
+			if ( unzGetCurrentFileInfo(fptr, &file_info, filename, MAX_FILENAME, NULL, 0, NULL, 0 ) != UNZ_OK ) {
+				logfile( "could not read file info\n" );
+				unzClose( fptr );
+				return MENU_HOME;
+			}
+
+			// Check if this entry is a directory or file.
+			const size_t filename_length = strlen(filename);
+			if(filename[filename_length - 1] == dir_delimter ) {
+				// Entry is a directory, so create it.
+				logfile( "dir:%s\n", filename );
+				mkdir(filename, S_IREAD | S_IWRITE);
+			}
+			else {
+				// Entry is a file, so extract it.
+				logfile( "file:%s\n", filename );
+				sprintf(outpath, "%s:/config/wiithememanager/%s", getdevicename(thememode), filename);
+				if(!Fat_CheckFile(outpath)) {
+				logfile("outpath(%s)\n", outpath);
+				if ( unzOpenCurrentFile( fptr ) != UNZ_OK )
+				{
+					logfile( "could not open file\n" );
+					unzClose( fptr );
+					return MENU_HOME;
+				}
+
+				// Open a file to write out the data.
+				FILE *out = fopen( outpath, "wb" );
+				if ( out == NULL )
+				{
+					logfile( "could not open destination file\n" );
+					unzCloseCurrentFile( fptr );
+					unzClose( fptr );
+					return MENU_HOME;
+				}
+				wiilight(1);
+						sprintf(tmpstr,"Saving %s .", filename);
+						__Draw_Message(tmpstr,0);
+				int error = UNZ_OK;
+				do    
+				{
+					__Draw_Loading();
+					error = unzReadCurrentFile( fptr, read_buffer, READ_SIZE );
+					if ( error < 0 )
+					{
+						logfile( "error %d\n", error );
+						unzCloseCurrentFile( fptr );
+						unzClose( fptr );
+						return MENU_HOME;
+					}
+
+					// Write data to file.
+					if ( error > 0 )
+					{
+						
+						fwrite( read_buffer, error, 1, out ); // You should check return of fwrite...
+						
+					}
+				} while ( error > 0 );
+
+				fclose( out );
+				sprintf(tmpstr,"Saving %s Complete .", filename);
+				__Draw_Message(tmpstr,0);
+				wiilight(0);
+				}
+				
+			}
+
+			unzCloseCurrentFile( fptr );
+			
+			 // Go the the next entry listed in the zip file.
+			if((i + 1) < global_info.number_entry ) {
+				if ( unzGoToNextFile( fptr ) != UNZ_OK )
+				{
+					logfile( "cound not read next file\n" );
+					unzClose( fptr );
+					return MENU_HOME;
+				}
+			}
+		}
+		unzClose( fptr );
+	}
+	else {
+		sprintf(tmpstr,"Downloading wiithememanagerimages.zip Failed .");
+		__Draw_Message(tmpstr,0);
+		sleep(3);
+		
+	}
+	
 	free(fatpath);
 	free(tmpstr);
-	return 0;
+	return MENU_HOME;
 }
 const char *getdevicename(int index) {
+	const char *return_name = NULL;
+	
 	switch(index)
 	{
-		case 1: return "sd";
+		case 0: return_name = "SD";
 		break;
-		case 2: return "usb"; 
+		case 1: return_name = "USB"; 
 		break;
-		default: return "ukn";
+		default: return_name = "---";
+		break;
 	}
+	return return_name;
 }
 #define DEVICE_X			        200
-#define DEVICE_Y			        170
-#define DEVICE_WIDTH		        224
+#define DEVICE_Y			        180
+#define DEVICE_BUTTON_WIDTH		    220
 #define DEVICE_BUTTON_HEIGHT		30
-#define DEVICE_BUTTON_SEPARATION	40
-int __Select_Device(void) {
-	int i, hotSpot, hotSpotPrev, ret;
-	bool repaint=true;
-	
-	const char *langs[2] = { "Sd", "Usb" };
+#define DEVICE_BUTTON_SEPARATION	50
+void __Select_Device() {
+	int i, hotSpot, hotSpotPrev, selected_device;
+	bool repaint = true;
+	//bool showinstructions = false;
+	const char *dev[2] = { "SD", "USB" };
 	
 	// Create/restore hotspots
 	Wpad_CleanHotSpots();
@@ -2133,59 +2543,89 @@ int __Select_Device(void) {
 		Wpad_AddHotSpot(i,
 			DEVICE_X,
 			DEVICE_Y + i*(DEVICE_BUTTON_HEIGHT+DEVICE_BUTTON_SEPARATION),
-			DEVICE_WIDTH,
+			DEVICE_BUTTON_WIDTH,
 			DEVICE_BUTTON_HEIGHT,
-			(i == 0 ? 1 : i - 1),
-			(i == 2 ? 0 : i + 1),
+			(i == 0 ? 1 : 0),
+			(i == 1 ? 0 : 1),
 			i, i
 		);
 	}
-
-	// Background
-	MRC_Draw_Texture(0, 0, textures[TEX_BACKGROUND]);
-	sprintf(tempString, "Select %s Device :", (availList == 1 ? "Save" : "Theme"));
-	MRC_Draw_Box(90, 95, 170, 25, WHITE - 0x20);
-	MRC_Draw_String(95, 100, BLACK, tempString);
 	
-	sprintf(tempString, "[A] - Select %s Device :", (availList == 1 ? "Save" : "Theme"));
-	MRC_Draw_Box(90, 355, 170, 25, WHITE - 0x20);
-	MRC_Draw_String(95, 360, BLACK, "[A] - Select Device  ");
-	
-	sprintf(tempString, "IOS_%d v_%d", IOS_GetVersion(), IOS_GetRevision());
-	MRC_Draw_Box(25, 425, 120, 25, WHITE - 0x20);
-	MRC_Draw_String(30, 430, BLACK, tempString);
-	
-	sprintf(tempString, "System_Menu v%s_%s", getsysvernum(systemmenuversion), getregion(systemmenuversion));
-	MRC_Draw_Box(450, 425, 160, 25, WHITE - 0x20);
-	MRC_Draw_String(455, 430, BLACK, tempString);
-
 	// Loop
 	hotSpot = hotSpotPrev = -1;
 
-	ret = 0;
-	for(;;){
+	selected_device = MENU_EXIT_HBC;
+	for(;;) {
 		hotSpot = Wpad_Scan();
-
+		
+			MRC_Draw_Texture(0, 0, textures[TEX_BACKGROUND]);
+			sprintf(tempString, "Select %s Device :", (downloadable_theme_List == 1 ? "Save" : "Theme"));
+			MRC_Draw_Box(94, 99, (strlen(tempString)*8) + 1, 17, WHITE);
+			MRC_Draw_String(95, 100, BLACK, tempString);
+			
+			sprintf(tempString, "Device : %s", getdevicename(thememode));
+			MRC_Draw_Box(((640-strlen(tempString)*8)/2 - 1), 429, (strlen(tempString)*8) + 2, 17, WHITE);
+			MRC_Draw_String(((640-strlen(tempString)*8)/2), 430, BLACK, tempString);
+			
+			MRC_Draw_Box(94, 359, (strlen("[A] - Select Device  ")*8) + 1, 17, WHITE);
+			MRC_Draw_String(95, 360, BLACK, "[A] - Select Device  ");
+			
+			sprintf(tempString, "IOS %d v%d", IOS_GetVersion(), IOS_GetRevision());
+			MRC_Draw_Box(29, 429, (strlen(tempString)*8) + 1, 17, WHITE);
+			MRC_Draw_String(30, 430, BLACK, tempString);
+			
+			sprintf(tempString, "System Menu v%s%s", getsysvernum(systemmenuversion), getregion(systemmenuversion));
+			MRC_Draw_Box(459, 429, (strlen(tempString)*8) + 2, 17, WHITE);
+			MRC_Draw_String(460, 430, BLACK, tempString);
+		
 		// If hot spot changed
-		if(((hotSpot != hotSpotPrev) && (hotSpot < 3)) || repaint){
+		if(((hotSpot != hotSpotPrev) && (hotSpot < 2)) || repaint){
 			hotSpotPrev = hotSpot;
 
 			for(i = 0; i < 2; i++){
-				__Draw_Button(i, langs[i], hotSpot == i);
+				__Draw_Button(i, dev[i], hotSpot == i);
 			}
-			repaint=false;
+			//__Draw_Button(2, "?", hotSpot == 2);
+			//MRC_Resize_Texture(textures[TEX_INFO], 50, 50);
+			//MRC_Draw_Texture(570, 225, textures[TEX_INFO]);
+			
+			repaint = false;
 		}
 		MRC_Draw_Cursor(Wpad_GetWiimoteX(), Wpad_GetWiimoteY(), 0);
+		
 
-		if(((WPAD_ButtonsDown(WPAD_CHAN_0) & WPAD_BUTTON_A) || (PAD_ButtonsDown(0) & PAD_BUTTON_A))){
-			if(hotSpot==0)
-				ret=1;
-			else if(hotSpot==1)
-				ret=2;	
+		if(((WPAD_ButtonsDown(WPAD_CHAN_0) & WPAD_BUTTON_A) || (PAD_ButtonsDown(0) & PAD_BUTTON_A)) && hotSpot != -1) {
+			
+			if(hotSpot == 0) {
+				selected_device = 0;
+				break;
+			}
+			else if(hotSpot == 1){
+				selected_device = 1;	
+				break;
+			}
+		}
+		else if(WPAD_ButtonsDown(WPAD_CHAN_0) & WPAD_BUTTON_HOME) {
+			selected_device = MENU_EXIT_PRIILOADER;
 			break;
 		}
+		else repaint = true;
 	}
-	return ret;
+	if(thememode != -1) {
+		if(thememode != selected_device)
+			Fat_Unmount(thememode);
+		else
+			return;
+	}
+	if(selected_device > 1) {
+		thememode = selected_device;
+		return;
+	}
+	thememode = Fat_Mount(selected_device);
+	//logfile("Wii Theme Manager Debugging Started .\n");
+	//logfile("system menu version[%d] \n", systemmenuversion);
+	//logfile("selected_device[%i]\n", selected_device);
+	return;
 }
 const char *spinoptions(int input) {
 	char *rtn;
@@ -2208,13 +2648,13 @@ const char *spinoptions(int input) {
 	return rtn;
 }
 #define SPIN_BUTTON_X			210
-#define SPIN_BUTTON_Y			170
+#define SPIN_BUTTON_Y			180
 #define SPIN_BUTTON_WIDTH		220
 #define SPIN_BUTTON_HEIGHT		30
 #define SPIN_BUTTON_SEPARATION	10
-int __Spin_Question(void) {
+int __Spin_Question() {
 	int i, hotSpot, hotSpotPrev, ret;
-	bool repaint=true;
+	bool repaint = true;
 
 	// Create/restore hotspots
 	Wpad_CleanHotSpots();
@@ -2225,11 +2665,10 @@ int __Spin_Question(void) {
 			SPIN_BUTTON_WIDTH,
 			SPIN_BUTTON_HEIGHT,
 			(i == 0 ? 2 : i - 1),
-			(i == 3 ? 0 : i + 1),
+			(i == 2 ? 0 : i + 1),
 			i, i
 		);
 	}
-
 
 	__Draw_Window(SPIN_BUTTON_WIDTH+60, 170, "Channel Spin Option :");
 
@@ -2238,22 +2677,19 @@ int __Spin_Question(void) {
 	MRC_Draw_String(30, 430, BLACK, tempString);
 	
 	sprintf(tempString, "System_Menu v%s_%s", getsysvernum(systemmenuversion), getregion(systemmenuversion));
-	MRC_Draw_Box(450, 425, 160, 25, WHITE - 0x20);
-	MRC_Draw_String(455, 430, BLACK, tempString);
-	//MRC_Draw_String(10, 440, 0x505050ff, lang[9+thememode]);
-	//sprintf(tempString, "wiithememanager v_%d - by Scooby74029", wiithememanager_VERSION);
-	//MRC_Draw_String(210, 350, BLACK, tempString);
-
+	MRC_Draw_Box(455, 425, 160, 25, WHITE - 0x20);
+	MRC_Draw_String(460, 430, BLACK, tempString);
+	
 	// Loop
 	hotSpot = hotSpotPrev = -1;
 
-	ret = 1;
+	ret = MENU_SELECT_THEME;
 	for(;;){
-		hotSpot=Wpad_Scan();
+		hotSpot = Wpad_Scan();
 
 		// If hot spot changed
-		if((hotSpot!=hotSpotPrev && hotSpot<3) || repaint){
-			hotSpotPrev=hotSpot;
+		if((hotSpot != hotSpotPrev && hotSpot < 3) || repaint){
+			hotSpotPrev = hotSpot;
 
 			__Draw_Button(0, "No Spin", hotSpot == 0);
 			__Draw_Button(1, "Spin", hotSpot == 1);
@@ -2261,20 +2697,27 @@ int __Spin_Question(void) {
 			repaint = false;
 		}
 		MRC_Draw_Cursor(Wpad_GetWiimoteX(), Wpad_GetWiimoteY(), 0);
-		if(((WPAD_ButtonsDown(WPAD_CHAN_0) & WPAD_BUTTON_A) || (PAD_ButtonsDown(0) & PAD_BUTTON_A)) && hotSpot>-1 && hotSpot<3){
+		if(((WPAD_ButtonsDown(WPAD_CHAN_0) & WPAD_BUTTON_A) || (PAD_ButtonsDown(0) & PAD_BUTTON_A)) && hotSpot > -1 && hotSpot < 3) {
 			if(hotSpot == 0) ret = 1;
 			else if(hotSpot == 1) ret = 2;
 			else if(hotSpot == 2) ret = 3;
 			break;
 		}
-		else{
-			repaint = true;
-		}
+		else if(WPAD_ButtonsDown(WPAD_CHAN_0) & WPAD_BUTTON_B || (PAD_ButtonsDown(0) & PAD_BUTTON_B)) break;
+		else repaint = true;
 	}
 
 	return ret;
 }
 int __download_Theme() {
+	__Draw_Loading();
+	if(!netconnection) {
+		if(debugcard) {
+			logfile("Internet connection not detected .\n");
+		}
+		return MENU_SELECT_THEME;
+	}
+	
 	char tmpstr[128];
 	char sitepath[512];
 	char mymfile[32];
@@ -2288,10 +2731,10 @@ int __download_Theme() {
 	//char download_return_count[32];
 	const char *siteUrl = "http://wiithemer.org/wii/index.php?action=";
 	const char *actions[4] = { "prepDir", "copymymfiles", "downloadappfile", "buildtheme" }; // To Do add option to update wii download count and save on server 
-	int retries, ret = -2, i = 0;
+	int ret = -2, i = 0;
 	int theme_selected = orden[selectedtheme];
 	logfile("selected = %d \n selectedtheme = %d %s\n", theme_selected, selectedtheme, ThemeList[orden[selectedtheme]].title);
-	
+	/*
 	sprintf(tmpstr, "Connecting to the network .");
 	__Draw_Message(tmpstr, 0);
 	sleep(1);
@@ -2310,25 +2753,40 @@ int __download_Theme() {
 	sprintf(tmpstr, "Connecting to the network complete .");
 	__Draw_Message(tmpstr, 0);
 	sleep(1);
-	
-	if((orden[selectedtheme] >= 14) && (orden[selectedtheme] <= 21)) {
-		sprintf(mymfile, "&mymfile=%s%s.mym", DBThemelistDL[orden[selectedtheme]], getregion(systemmenuversion));
+	*/
+	switch(theme_selected) {
+		case 20:
+		case 21:
+		case 22:
+		case 23:
+		case 24:
+		case 25:
+		case 26:
+		case 27:
+		case 47:
+		case 117:
+			sprintf(mymfile, "&mymfile=%s%s.mym", Theme_Mym_File[orden[selectedtheme]], getregion(systemmenuversion));
+			break;
+		default:
+			sprintf(mymfile, "&mymfile=%s", Theme_Mym_File[orden[selectedtheme]]);
+			break;
 	}
-	else sprintf(mymfile, "&mymfile=%s", DBThemelistDL[orden[selectedtheme]]);
-	logfile("mymfile = %s", mymfile);
+	 
+	logfile("mymfile = %s\n", mymfile);
 	sprintf(version, "&version=%i", systemmenuversion);
 	sprintf(spinoption, "&spinselected=%s", spinoptions(spinselected));
 	sprintf(themeposition, "&selected=%d", theme_selected);
 	
 	u32 outlen = 0;
 	u32 http_status = 0;
-	u32 Maxsize = 4294967295;
+	u32 Maxsize = 4294967290;
 	u8* outbuf = NULL;
 	char *savename = NULL;
+	//themedir = "modthemes";
 	
 	for(i = 0; i < 4; i++) {
 		__Draw_Loading();
-		if(debug) logfile("i(%d)\n", i);
+		if(debugcard) logfile("i(%d)\n", i);
 		switch(i) {
 			case 0:
 				sprintf(sitepath, "%s%s", siteUrl, actions[i]);
@@ -2349,7 +2807,7 @@ int __download_Theme() {
 				__Draw_Message(tmpstr, 0);
 			break;
 		}
-		if(debug) logfile("sitepath[%s]\n", sitepath);
+		if(debugcard) logfile("sitepath[%s]\n", sitepath);
 		ret = http_request(sitepath, Maxsize);
 		if(ret != 0 ) {
 			ret = http_get_result(&http_status, &outbuf, &outlen);
@@ -2358,11 +2816,11 @@ int __download_Theme() {
 				if(outlen > 0 && http_status == 200) {
 					memcpy(output, outbuf, outlen);
 					output[outlen] = 0;
-					if(debug) logfile("%s\n", output);
+					if(debugcard) logfile("%s\n", output);
 					switch(i) {
 						case 0:
 							strcpy(sessionId, output);
-							if(debug) logfile("id[%s\n", sessionId);
+							if(debugcard) logfile("id[%s\n", sessionId);
 							sprintf(sessionIdstr, "&sessionId=%s", sessionId);
 							sleep(1);
 						break;
@@ -2387,11 +2845,11 @@ int __download_Theme() {
 			}
 		}
 	}
-	if(debug) logfile("link[%s]\n", themedownloadlink);
+	if(debugcard) logfile("link[%s]\n", themedownloadlink);
 	sprintf(sitepath, "%s", themedownloadlink);
 	sprintf(tmpstr, "Downloading Theme .");
 	__Draw_Message(tmpstr, 0);
-	if(debug) logfile("sitepath[%s]\n", sitepath);
+	if(debugcard) logfile("sitepath[%s]\n", sitepath);
 	char savepath[128];
 	ret = http_request(sitepath, Maxsize);
 	if(ret != 0 ) {
@@ -2403,39 +2861,38 @@ int __download_Theme() {
 				if(token != NULL)
 				savename = token;
 			}
-			if(debug) logfile("savename = %s", savename);
-			sprintf(savepath,"%s:/themes/%s", getdevicename(thememode), savename);
-			//__Draw_Loading();
+			if(debugcard) logfile("savename = %s", savename);
+			sprintf(savepath,"%s:/%s", getdevicename(thememode), themedir);
 			
+			if(!Fat_CheckDir(savepath))
+				Fat_CreateSubfolder(savepath);
+			//__Draw_Loading();
+			sprintf(savepath,"%s:/%s/%s", getdevicename(thememode), themedir, savename);
 			ret = Fat_SaveFile(savepath, (void *)&outbuf, outlen);
-			sprintf(tmpstr, "Downloading Theme Complete . Choose 'Install Theme' at next screen .");
+			sprintf(tmpstr, "Downloading Theme Complete .");
 			__Draw_Message(tmpstr, 0);
 			sleep(3);
 		}
 	}
+	if(debugcard) logfile("\ndelete server session dir here .\n");
+	sprintf(sitepath, "%s%s%s", siteUrl, "removesessionDir", sessionIdstr);
+	if(debugcard) logfile("sitepath[%s]\n", sitepath);
+	ret = http_request(sitepath, Maxsize);
 	
 	if(Fat_CheckFile(savepath)) {
-		if(debug) logfile("\ndelete server session dir here .\n");
-		sprintf(sitepath, "%s%s%s", siteUrl, "removesessionDir", sessionIdstr);
-		if(debug) logfile("sitepath[%s]\n", sitepath);
-		ret = http_request(sitepath, Maxsize);
 		sprintf(downloads_update, "&downloadcount=%d", 1);
 		sprintf(sitepath, "%s%s%s&themetoupdate=%s", siteUrl, "updatedownloadcount", downloads_update, DBThemelist_nospaces[orden[selectedtheme]]);
 		ret = http_request(sitepath, Maxsize);
-		if(debug) logfile("sitepath[%s] ret[%d]\n", sitepath, ret);
+		if(debugcard) logfile("sitepath[%s] ret[%d]\n", sitepath, ret);
 	}
 	net_deinit();
 	
 	return MENU_HOME;
 }
-int Menu_Loop(){
+void Menu_Loop(){
 	
-	int ret = 0;
-	//char tmpstr[256];
-	/*if(debug) {
-		Con_Init(CONSOLE_X, CONSOLE_Y, CONSOLE_WIDTH, CONSOLE_HEIGHT);
-		printf("Wii Theme Manager Debugging Started .\n");
-	}*/
+	int ret = MENU_MANAGE_DEVICE;
+	
 	// Check if widescreen
 	if(CONF_GetAspectRatio() == CONF_ASPECT_16_9)
 		wideScreen = true;
@@ -2444,91 +2901,91 @@ int Menu_Loop(){
 	MRC_Init();
 	textures[1] = MRC_Load_Texture((void *)wiithememanager_background_png);
 	textures[4] = MRC_Load_Texture((void *)wiithememanager_loading_png);
-	//netconnection = checknetconnection();
-	priiloadercheck = checkforpriiloader();
-	systemmenuversion = GetSysMenuVersion();
-	if(systemmenuversion > 518) systemmenuversion = checkcustomsystemmenuversion();
-	//if(!thememode) thememode = __Select_Device();
-	/*if(!Fat_Mount(thememode)){
-		if(debug) logfile("fat not mounted %d \n", thememode);
-	}
-	else
-		if(debug) logfile("fat mounted %d \n", thememode);
-	if(debug) logfile("systemmenuversion(%d) \n", systemmenuversion);
-	sprintf(tmpstr,"%s:/config/wiithememanager", getdevicename(thememode));
-	if(debug) logfile("tmpstr = %s \n", tmpstr);
-	if(!Fat_CheckFile(tmpstr)) {
-		Fat_CreateSubfolder(tmpstr);
-	}
-	sprintf(tmpstr,"%s:/themes", getdevicename(thememode));
-	if(debug) logfile("tmpstr = %s \n", tmpstr);
-	if(!Fat_CheckFile(tmpstr)) {
-		Fat_CreateSubfolder(tmpstr);
-	}*/
-	//logfile("connect = %d\n", netconnection);
-	//logfile("priiloadercheck = %d\n", priiloadercheck);
-	//themecnt = filelist_retrieve(availList);
-	// Load skin images
+	
 	MRC_Free_Texture(textures[1]);
 	MRC_Free_Texture(textures[4]);
-	__Load_Skin_From_FAT();
+	// Load skin images*/
+	__load_textures();
+	
+	ret = GetSysMenuVersion();
+	if(ret > 610) ret = systemmenuversion = checkcustomsystemmenuversion();
+	else systemmenuversion = ret;
 
-	// Load config file
-	//__Load_Config();
-	
-	ret = MENU_HOME;
-	
+	priiloadercheck = checkforpriiloader(is_vWii(systemmenuversion));
 	if(!priiloadercheck) {
 		priiloaderackknowledgement = __Question_Window("Priiloader not Detected", "Theme Installs are disabled . ", "Continue", "Exit");
-		if(!priiloaderackknowledgement) ret = MENU_EXIT;
+		if(!priiloaderackknowledgement) ret = MENU_EXIT_HBC;
 	}
 	
-	for(;;){
-		if(ret == MENU_SELECT_THEME)
+	ret = MENU_MANAGE_DEVICE;
+	for(;;) {
+		__Draw_Loading();
+		if(ret == MENU_SELECT_THEME) {
+			
 			ret = __Select_Theme();
-		else if(ret == MENU_SHOW_THEME)
+		}
+		else if(ret == MENU_SHOW_THEME) {
 			ret=__Show_Theme();	
-		else if(ret == MENU_HOME)
+		}
+		else if(ret == MENU_HOME) {
 			ret = __Home();
-		else if(ret == MENU_MANAGE_DEVICE){
-			thememode =  __Select_Device();
-			if(!Fat_Mount(thememode)){
-				__Draw_Message("Unable to Detect Sd Card . Press any button to Exit .", thememode);
+			if(!netconnection) netconnection = checkNinit_netconnection();
+			if(debugcard) {
+				logfile("netconnection[%d] ret[%d]\n", netconnection, ret);
 			}
-			else
-				if(debug) logfile("fat mounted %d availlist[%d]\n", thememode, availList);
-			__Free_Channel_Images();
-			themecnt = filelist_retrieve(availList);
+		}
+		else if(ret == MENU_MANAGE_DEVICE){
+			__Select_Device();
+			//printf("thememode[%i] after select device\n", thememode);
+			if((thememode < 0) || (thememode == MENU_EXIT_PRIILOADER)) {
+				ret = MENU_HOME;
+				continue;
+			}
+			
+			if(themecnt > 0) __Free_Channel_Images();
+			themecnt = filelist_retrieve(downloadable_theme_List);
+			//if(debugcard) logfile("themedir [%s]\n", themedir);
 			__Load_Config();
 			ret = MENU_SELECT_THEME;
 		}
-		else if(ret == MENU_DOWNLOAD) {
-			netconnection = checknetconnection();
+		else if(ret == MENU_DOWNLOAD_IMAGE) {
+			netconnection = checkNinit_netconnection();
 			ret = __Downloadthemepng();
 		}
 		else if(ret == MENU_ORIG_THEME) {
-			netconnection = checknetconnection();
+			
 			ret = __downloadApp(1);
 		}
 		else if(ret == MENU_INSTALL_THEME) {
-			if(availList) {
-				netconnection = checknetconnection();
+			if(!netconnection) netconnection = checkNinit_netconnection();
+			if(downloadable_theme_List) {
 				ret = __download_Theme();
 			}
 			else ret = __install_Theme();
 		}
-		else if((ret == MENU_EXIT) || (ret == MENU_EXIT_TO_MENU))
-			break;
+		else if(ret == MENU_EXIT_SYSTEMMENU) {
+			__Draw_Message("Exiting to the System Menu ....", 0);
+			if(thememode >= 0)
+				Fat_Unmount(thememode);
+			sleep(1);
+			sys_loadmenu();
+		}
+		else if(ret == MENU_EXIT_HBC) {
+			__Draw_Message("Exiting to HBC ....", 0);
+			if(thememode >= 0)
+				Fat_Unmount(thememode);
+			sleep(1);
+			sysHBC();
+		}
+		else if(ret == MENU_EXIT_PRIILOADER) {
+			__Draw_Message("Exiting to PriiLoader ....", 0);
+			if(thememode >= 0)
+				Fat_Unmount(thememode);
+			sleep(1);
+			system_Exit_Priiloader();
+		}
 	}
 	
-	if(ret == MENU_EXIT_TO_MENU) __Draw_Message("Exiting to the System Menu ....", 0);
-	if(ret == MENU_EXIT) __Draw_Message("Exiting to HBC ....", 0);
-	sleep(1);
-	logfile("thememode = %d\n", thememode);
-	if(thememode)
-		__Finish_ALL_GFX();
-	Fat_Unmount();
-	if(ret == MENU_EXIT_TO_MENU) SYS_ResetSystem(SYS_RETURNTOMENU, 0, 0);
-	return sysHBC();// exit(0);
+	return;
 }
 
