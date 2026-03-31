@@ -28,15 +28,16 @@
 #include <sys/types.h>
 #include <sys/errno.h>
 #include <fcntl.h>
+#include <math.h>
 
 #include "http.h"
 #include "menu.h"
+#include "video.h"
 
 char *http_host;
 u16 http_port;
 char *http_path;
 u32 http_max_size;
-
 http_res result;
 u32 http_status;
 u32 content_length;
@@ -125,8 +126,7 @@ s32 tcp_connect (char *host, const u16 port) {
 	return s;
 }
 
-char * tcp_readln (const s32 s, const u16 max_length, const s64 start_time,
-					const u16 timeout) {
+char * tcp_readln (const s32 s, const u16 max_length, const s64 start_time, const u16 timeout) {
 	char *buf;
 	u16 c;
 	s32 res;
@@ -176,34 +176,35 @@ char * tcp_readln (const s32 s, const u16 max_length, const s64 start_time,
 	return ret;
 }
 
-bool tcp_read (const s32 s, u8 **buffer, const u32 length) {
+bool tcp_read (const s32 s, u8 **buffer, const u32 length, bool progress) {
 	u8 *p;
-	u32 step, left, block, received;
+	u32 step, left, block, received, progress_width=0;
+	float a = .1;
 	s64 t;
 	s32 res;
-
 	step = 0;
 	p = *buffer;
 	left = length;
 	received = 0;
-
+	
 	t = gettime ();
+	if(progress) {
+		MRC_Draw_Box(40, 255, 560, 12, BLACK);
+		MRC_Render_Box(40, 255);
+	}
 	while (left) {
-		__Draw_Loading();
-		if (ticks_to_millisecs (diff_ticks (t, gettime ())) >
-				TCP_BLOCK_RECV_TIMEOUT) {
-			printf("tcp_read timeout\n");
-
+		__Draw_Loading(440, 440);
+		if (ticks_to_millisecs (diff_ticks (t, gettime ())) > TCP_BLOCK_RECV_TIMEOUT) {
+			logfile("tcp_read timeout\n");
 			break;
 		}
 
 		block = left;
 		if (block > 2048)
 			block = 2048;
-
 		res = net_read (s, p, block);
 		//spinner();
-
+		//__Draw_Loading(440, 440);
 		if ((res == 0) || (res == -EAGAIN)) {
 			usleep (20 * 1000);
 
@@ -211,7 +212,7 @@ bool tcp_read (const s32 s, u8 **buffer, const u32 length) {
 		}
 
 		if (res < 0) {
-			printf("net_read failed: %d\n", res);
+			logfile("net_read failed: %d\n", res);
 
 			break;
 		}
@@ -219,13 +220,21 @@ bool tcp_read (const s32 s, u8 **buffer, const u32 length) {
 		received += res;
 		left -= res;
 		p += res;
-
+	
 		if ((received / TCP_BLOCK_SIZE) > step) {
 			t = gettime ();
 			step++;
 		}
+		if(progress)
+		if(received >= a*length) {
+			a+=.1;
+			progress_width+=56;
+			MRC_Draw_Box(42, 257, progress_width, 8, RED);
+			MRC_Render_Box(40, 255);
+		}
+		
 	}
-
+	progress_width=0;
 	return left == 0;
 }
 
@@ -242,6 +251,7 @@ bool tcp_write (const s32 s, const u8 *buffer, const u32 length) {
 
 	t = gettime ();
 	while (left) {
+		
 		if (ticks_to_millisecs (diff_ticks (t, gettime ())) >
 				TCP_BLOCK_SEND_TIMEOUT) {
 
@@ -296,17 +306,17 @@ bool http_split_url (char **host, char **path, const char *url) {
 	return true;
 }
 
-bool http_request (const char *url, const u32 max_size) {
+u32 http_request_content_length(const char *url, const u32 max_size) {
 	int linecount;
 	if (!http_split_url(&http_host, &http_path, url)) return false;
 
 	http_port = 80;
 	http_max_size = max_size;
-	__Draw_Loading();
+	
 	http_status = 404;
 	content_length = 0;
 	http_data = NULL;
-
+	__Draw_Loading(440, 440);
 	int s = tcp_connect (http_host, http_port);
 //	debug_printf("tcp_connect(%s, %hu) = %d\n", http_host, http_port, s);
 	if (s < 0) {
@@ -314,7 +324,7 @@ bool http_request (const char *url, const u32 max_size) {
 		return false;
 	}
 
-	char *request = (char *) malloc (1024);
+	char *request = (char *) malloc(512);
 	char *r = request;
 	r += sprintf (r, "GET %s HTTP/1.1\r\n", http_path);
 	r += sprintf (r, "Host: %s\r\n", http_host);
@@ -322,12 +332,13 @@ bool http_request (const char *url, const u32 max_size) {
 
 //	debug_printf("request = %s\n", request);
 
-	bool b = tcp_write (s, (u8 *) request, strlen (request));
+	//bool b = 
+	tcp_write (s, (u8 *) request, strlen (request));
 //	debug_printf("tcp_write returned %d\n", b);
 
 	free (request);
 	linecount = 0;
-
+	
 	for (linecount=0; linecount < 32; linecount++) {
 		char *line = tcp_readln (s, 0xff, gettime(), HTTP_TIMEOUT);
 //		debug_printf("tcp_readln returned %p (%s)\n", line, line?line:"(null)");
@@ -350,38 +361,96 @@ bool http_request (const char *url, const u32 max_size) {
 		line = NULL;
 
 	}
-//	debug_printf("content_length = %d, status = %d, linecount = %d\n", content_length, http_status, linecount);
+	return content_length;
+}
+bool http_request (const char *url, const u32 max_size, bool progress) {
+	int linecount;
+	if (!http_split_url(&http_host, &http_path, url)) return false;
+	//logfile("in request\n");
+	http_port = 80;
+	http_max_size = max_size;
+	__Draw_Loading(440, 440);
+	http_status = 404;
+	content_length = 0;
+	http_data = NULL;
+
+	int s = tcp_connect (http_host, http_port);
+	//logfile("tcp_connect(%s, %hu) = %d\n", http_host, http_port, s);
+	if (s < 0) {
+		result = HTTPR_ERR_CONNECT;
+		return false;
+	}
+
+	char *request = (char *) malloc(512);
+	char *r = request;
+	r += sprintf (r, "GET %s HTTP/1.1\r\n", http_path);
+	r += sprintf (r, "Host: %s\r\n", http_host);
+	r += sprintf (r, "Cache-Control: no-cache\r\n\r\n");
+	//logfile("request = %s\n", request);
+
+	bool b = tcp_write (s, (u8 *) request, strlen (request));
+	//logfile("tcp_write returned %d\n", b);
+
+	free (request);
+	linecount = 0;
+
+	for (linecount=0; linecount < 32; linecount++) {
+		char *line = tcp_readln (s, 0xff, gettime(), HTTP_TIMEOUT);
+		//logfile("tcp_readln returned %p (%s)\n", line, line?line:"(null)");
+		if (!line) {
+			http_status = 404;
+			result = HTTPR_ERR_REQUEST;
+			break;
+		}
+
+		if (strlen (line) < 1) {
+			free (line);
+			line = NULL;
+			break;
+		}
+
+		sscanf (line, "HTTP/1.1 %u", &http_status);
+		sscanf (line, "Content-Length: %u", &content_length);
+
+		free (line);
+		line = NULL;
+
+	}
+	logfile("content_length = %d, status = %d, linecount = %d\n", content_length, http_status, linecount);
 	if (linecount == 32 || !content_length) http_status = 404;
 	if (http_status != 200) {
 		result = HTTPR_ERR_STATUS;
 		net_close (s);
+		logfile("result = HTTPR_ERR_STATUS\n");
 		return false;
 	}
 	if (content_length > http_max_size) {
 		result = HTTPR_ERR_TOOBIG;
 		net_close (s);
+		logfile("result = HTTPR_ERR_TOOBIG\n");
 		return false;
 	}
 	http_data = (u8 *) malloc (content_length);
-	b = tcp_read (s, &http_data, content_length);
+	b = tcp_read (s, &http_data, content_length, progress);
 	if (!b) {
 		free (http_data);
 		http_data = NULL;
 		result = HTTPR_ERR_RECEIVE;
 		net_close (s);
+		logfile("result = HTTPR_ERR_RECEIVE\n");
 		return false;
 	}
 
 	result = HTTPR_OK;
 
 	net_close (s);
-
+	//logfile("result ->> %d\n");
 	return true;
 }
 
 bool http_get_result (u32 *_http_status, u8 **content, u32 *length) {
 	if (http_status) *_http_status = http_status;
-	__Draw_Loading();
+	
 	if (result == HTTPR_OK) {
 		*content = http_data;
 		*length = content_length;

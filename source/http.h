@@ -13,7 +13,7 @@ s32 tcp_connect (char *host, const u16 port);
 
 char * tcp_readln (const s32 s, const u16 max_length, const s64 start_time,
 					const u16 timeout);
-bool tcp_read (const s32 s, u8 **buffer, const u32 length);
+bool tcp_read (const s32 s, u8 **buffer, const u32 length, bool);
 bool tcp_write (const s32 s, const u8 *buffer, const u32 length);
 
 #define HTTP_TIMEOUT 65535
@@ -27,8 +27,9 @@ typedef enum {
 	HTTPR_ERR_RECEIVE
 } http_res;
 
-bool http_request (const char *url, const u32 max_size);
-bool http_get_result (u32 *http_status, u8 **content, u32 *length);
 
+bool http_request (const char *url, const u32 max_size, bool);
+bool http_get_result (u32 *http_status, u8 **content, u32 *length);
+u32 http_request_content_length(const char *url, const u32 max_size);
 #endif
 

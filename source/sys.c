@@ -1,13 +1,10 @@
 #include <stdio.h>
 #include <ogcsys.h>
 #include <ogc/system.h>
+#include <stdlib.h>
+#define MAGIC_WORD_ADDRESS     0x8132FFFB
+#define MAGIC_WORD_ADDRESS2    0x817FEFF0 //0x8132FFFB
 
-#define HBC_HAXX    0x0001000148415858LL
-#define HBC_JODI    0x000100014A4F4449LL
-#define HBC_1_0_7   0x00010001AF1BF516LL      
-#define HBC_1_0_8   0x00010001af1bf516LL
-#define HBC_LULZ    0x000100014C554C5ALL
-#define Priiloader  0x0000000100000002LL
 /* Variables */
 static const char certs_fs[] ATTRIBUTE_ALIGN(32) = "/sys/cert.sys";
 static vu32 *_wiilight_reg = (u32*) 0xCD0000C0;
@@ -35,27 +32,21 @@ int sys_loadmenu(void)
 
 int sysHBC()
 {
-	WII_Initialize();
 	wiilight(1);
-    int ret = WII_LaunchTitle(HBC_1_0_8);
-    if(ret < 0)
-    WII_LaunchTitle(HBC_1_0_7);
-	if(ret < 0)
-    WII_LaunchTitle(HBC_LULZ);
-	if(ret < 0)
-    WII_LaunchTitle(HBC_JODI);
-	if(ret < 0)
-    WII_LaunchTitle(HBC_HAXX);
+	exit(0);
 	return 0;
 }
 int system_Exit_Priiloader() {
-	WII_Initialize();
 	wiilight(1);
-	int ret = WII_LaunchTitle(Priiloader);
-	
-	if(ret < 0)
-		return ret;
-	wiilight(0);
+	//retarded that this is the only way without touching the settings of priiloader or load the dol...
+	//logfile("magic word is %x\n",*(vu32*)MAGIC_WORD_ADDRESS);
+	*(vu32*)MAGIC_WORD_ADDRESS = 0x4461636f; // "Daco" , causes priiloader to skip autoboot and load the priiloader menu
+	//*(vu32*)MAGIC_WORD_ADDRESS = 0x50756e65; // "Pune" , causes priiloader to skip autoboot and load Sys Menu
+	*(vu32*)MAGIC_WORD_ADDRESS2 = *(vu32*)MAGIC_WORD_ADDRESS;
+	DCFlushRange((void*)MAGIC_WORD_ADDRESS, 4);
+	DCFlushRange((void*)MAGIC_WORD_ADDRESS2, 4);
+	//logfile("magic word changed to %x\n",*(vu32*)MAGIC_WORD_ADDRESS);
+	SYS_ResetSystem(SYS_RETURNTOMENU,0,0);
 	return 0;
 }
 s32 sys_getcerts(signed_blob **certs, u32 *len)

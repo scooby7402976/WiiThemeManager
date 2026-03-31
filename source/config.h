@@ -15,13 +15,5 @@
 
 #include <gccore.h>
 
-s32 videooption;
-u32 languageoption;
-u32 videopatchoption;
-
-u32 hooktypeoption;
-u32 debuggeroption;
-u32 ocarinaoption;
-
 u32 bootmethodoption;
 

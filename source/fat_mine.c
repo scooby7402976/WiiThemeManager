@@ -10,7 +10,7 @@
 #include <sys/dir.h>
 #include <unistd.h>
 #include <sdcard/wiisd_io.h>
-
+#include <ogc/usbstorage.h>
 
 
 #include "fat_mine.h"
@@ -20,7 +20,7 @@ const DISC_INTERFACE* interface;
 
 s32 Fat_Mount(s32 dev) {
 	s32 ret;
-
+	__Draw_Loading(440, 440);
 	if(dev == SD)
 		interface = &__io_wiisd;
 	else if(dev == USB)
@@ -29,41 +29,43 @@ s32 Fat_Mount(s32 dev) {
 	// Initialize interface
 	ret = interface->startup();
 	if(!ret)
-		dev = 0;
-
+		dev = -1;
+	__Draw_Loading(440, 440);
 	// Mount device
 	if(dev == SD) {
 		ret = fatMountSimple(DEV_MOUNT_SD, interface);
 		if (!ret)
-			dev = 0;
-		Sd_Mounted = true;
+			dev = -2;
+		//Sd_Mounted = true;
 	}
 	if(dev == USB) {
 		ret = fatMountSimple(DEV_MOUNT_USB, interface);
 		if (!ret)
-			dev = 0;
-		Usb_Mounted = true;
+			dev = -3;
+		//Usb_Mounted = true;
 	}
+	__Draw_Loading(440, 440);
 	return dev;
 }
 
 s32 Fat_Unmount(s32 dev) {
 	s32 ret;
-
+	__Draw_Loading(440, 440);
 	// Unmount device
 	if(dev == SD) {
 		fatUnmount(DEV_UNMOUNT_SD);
-		Sd_Mounted = false;
+		//Sd_Mounted = false;
 	}
 	if(dev == USB) {
 		fatUnmount(DEV_UNMOUNT_USB);
-		Usb_Mounted = false;
+		//Usb_Mounted = false;
 	}
+	__Draw_Loading(440, 440);
 	// Shutdown interface
 	ret = interface->shutdown();
 	if (!ret)
-		return 0;
-
+		return ret;
+	__Draw_Loading(440, 440);
 	return 1;
 }
 
@@ -89,7 +91,7 @@ s32 Fat_ReadFile(const char *filepath, void **outbuf, bool needloading) {
 	buffer = malloc(filelen);
 	if (!buffer)
 		goto err;
-	if(needloading) __Draw_Loading();
+	if(needloading) __Draw_Loading(440, 440);
 	/* Read file */
 	ret = fread(buffer, 1, filelen, fp);
 	if (ret != filelen)
@@ -151,17 +153,19 @@ bool Fat_CheckFile(const char *filepath) {
 s32 Fat_SaveFile(const char *filepath, void **outbuf, u32 outlen) {
 	s32 ret;
 	FILE *fd;
+	
+	__Draw_Loading(440, 440);
 	fd = fopen(filepath, "wb");
 	if(fd){
-		__Draw_Loading();
+		__Draw_Loading(440, 440);
 		ret=fwrite(*outbuf, 1, outlen, fd);
 		fclose(fd);
-		//printf(" FWRITE: %d ",ret);
+		__Draw_Loading(440, 440);
 	}
 	else{
 		ret=-1;
 	}
-
+	__Draw_Loading(440, 440);
 	return ret;
 }
 

@@ -1,5 +1,4 @@
-wpad.o: \
- C:/Users/Nayte/Desktop/wiithememanager/WiiThemeManager/source/wpad.c \
+wpad.o: C:/Users/Nayte/Desktop/thememanager/ThemeManager/source/wpad.c \
  C:/devkitPro/libogc/include/ogcsys.h \
  C:/devkitPro/libogc/include/gccore.h \
  C:/devkitPro/libogc/include/ogc/dsp.h \
@@ -55,7 +54,7 @@ wpad.o: \
  C:/devkitPro/libogc/include/ogc/mutex.h \
  C:/devkitPro/libogc/include/ogc/system.h \
  C:/devkitPro/libogc/include/ogc/wiilaunch.h \
- C:/Users/Nayte/Desktop/wiithememanager/WiiThemeManager/source/wpad.h \
+ C:/Users/Nayte/Desktop/thememanager/ThemeManager/source/wpad.h \
  C:/devkitPro/libogc/include/wiiuse/wpad.h \
  C:/devkitPro/libogc/include/wiiuse/wiiuse.h \
  C:/devkitPro/libogc/include/bte/bte.h \
@@ -115,7 +114,7 @@ C:/devkitPro/libogc/include/ogc/usbstorage.h:
 C:/devkitPro/libogc/include/ogc/mutex.h:
 C:/devkitPro/libogc/include/ogc/system.h:
 C:/devkitPro/libogc/include/ogc/wiilaunch.h:
-C:/Users/Nayte/Desktop/wiithememanager/WiiThemeManager/source/wpad.h:
+C:/Users/Nayte/Desktop/thememanager/ThemeManager/source/wpad.h:
 C:/devkitPro/libogc/include/wiiuse/wpad.h:
 C:/devkitPro/libogc/include/wiiuse/wiiuse.h:
 C:/devkitPro/libogc/include/bte/bte.h:

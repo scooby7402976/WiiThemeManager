@@ -22,6 +22,7 @@
 #include <stdlib.h>
 
 #include "tools.h"
+#include "menu.h"
 
 void *allocate_memory(u32 size){
 	return memalign(32, (size+31)&(~31) );
@@ -92,7 +93,7 @@ s32 getdir(char *path, dirent_t **ent, u32 *cnt){
 	u32 num = 0;
 
 	int i, j, k;
-	
+	__Draw_Loading(440, 440);
 	res = ISFS_ReadDir(path, NULL, &num);
 	if(res != ISFS_OK){
 		printf("Error: could not get dir entry count! (result: %d)\n", res);
@@ -100,13 +101,13 @@ s32 getdir(char *path, dirent_t **ent, u32 *cnt){
 	}
 
 	char ebuf[ISFS_MAXPATH + 1];
-
+__Draw_Loading(440, 440);
 	char *nbuf = (char *)allocate_memory((ISFS_MAXPATH + 1) * num);
 	if(nbuf == NULL){
 		printf("ERROR: could not allocate buffer for name list!\n");
 		return -2;
 	}
-
+__Draw_Loading(440, 440);
 	res = ISFS_ReadDir(path, nbuf, &num);
 	DCFlushRange(nbuf,13*num); //quick fix for cache problems?
 	if(res != ISFS_OK){
@@ -114,7 +115,7 @@ s32 getdir(char *path, dirent_t **ent, u32 *cnt){
 		free(nbuf);
 		return -3;
 	}
-	
+	__Draw_Loading(440, 440);
 	*cnt = num;
 	
 	*ent = allocate_memory(sizeof(dirent_t) * num);
@@ -123,7 +124,7 @@ s32 getdir(char *path, dirent_t **ent, u32 *cnt){
 		free(nbuf);
 		return -4;
 	}
-
+__Draw_Loading(440, 440);
 	for(i = 0, k = 0; i < num; i++){	    
 		for(j = 0; nbuf[k] != 0; j++, k++)
 			ebuf[j] = nbuf[k];
@@ -131,10 +132,11 @@ s32 getdir(char *path, dirent_t **ent, u32 *cnt){
 		k++;
 
 		strcpy((*ent)[i].name, ebuf);
+		__Draw_Loading(440, 440);
 	}
-	
+	__Draw_Loading(440, 440);
 	qsort(*ent, *cnt, sizeof(dirent_t), __FileCmp);
-	
+	__Draw_Loading(440, 440);
 	free(nbuf);
 	return 0;
 }
