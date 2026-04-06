@@ -321,7 +321,7 @@ u32 http_request_content_length(const char *url, const u32 max_size) {
 //	debug_printf("tcp_connect(%s, %hu) = %d\n", http_host, http_port, s);
 	if (s < 0) {
 		result = HTTPR_ERR_CONNECT;
-		return false;
+		return 0;
 	}
 
 	char *request = (char *) malloc(512);
@@ -361,6 +361,7 @@ u32 http_request_content_length(const char *url, const u32 max_size) {
 		line = NULL;
 
 	}
+	if(http_data) free(http_data);
 	return content_length;
 }
 bool http_request (const char *url, const u32 max_size, bool progress) {
@@ -391,7 +392,7 @@ bool http_request (const char *url, const u32 max_size, bool progress) {
 	bool b = tcp_write (s, (u8 *) request, strlen (request));
 	//logfile("tcp_write returned %d\n", b);
 
-	free (request);
+	
 	linecount = 0;
 
 	for (linecount=0; linecount < 32; linecount++) {
@@ -416,21 +417,26 @@ bool http_request (const char *url, const u32 max_size, bool progress) {
 		line = NULL;
 
 	}
-	logfile("content_length = %d, status = %d, linecount = %d\n", content_length, http_status, linecount);
+	//logfile("content_length = %d, status = %d, linecount = %d\n", content_length, http_status, linecount);
 	if (linecount == 32 || !content_length) http_status = 404;
 	if (http_status != 200) {
 		result = HTTPR_ERR_STATUS;
 		net_close (s);
+		logfile("request = %s\n", request);
+		logfile("content_length = %d, status = %d, linecount = %d\n", content_length, http_status, linecount);
 		logfile("result = HTTPR_ERR_STATUS\n");
+		free (request);
 		return false;
 	}
 	if (content_length > http_max_size) {
 		result = HTTPR_ERR_TOOBIG;
 		net_close (s);
 		logfile("result = HTTPR_ERR_TOOBIG\n");
+		free (request);
 		return false;
 	}
 	http_data = (u8 *) malloc (content_length);
+	//logfile("going to tcp read\n");
 	b = tcp_read (s, &http_data, content_length, progress);
 	if (!b) {
 		free (http_data);
@@ -438,11 +444,12 @@ bool http_request (const char *url, const u32 max_size, bool progress) {
 		result = HTTPR_ERR_RECEIVE;
 		net_close (s);
 		logfile("result = HTTPR_ERR_RECEIVE\n");
+		free (request);
 		return false;
 	}
 
 	result = HTTPR_OK;
-
+	free (request);
 	net_close (s);
 	//logfile("result ->> %d\n");
 	return true;

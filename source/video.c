@@ -338,13 +338,14 @@ MRCtex* __Create_No_Banner( const char* title, int width, int height){
 	newTex->buffer=temp;
 	return newTex;
 }
-MRCtex* __No_Banner(const char* title, int width, int height, void *img) {
+MRCtex* __No_Banner(const char* title, int width, int height) {
 	IMGCTX   ctx = NULL;
 	PNGUPROP imgProp;
 	int ret;
+	extern const uint8_t theme_manager_installer_empty_png[];
 	MRCtex* tex=NULL;
 	// Select PNG data
-	ctx = PNGU_SelectImageFromBuffer(img);
+	ctx = PNGU_SelectImageFromBuffer(theme_manager_installer_empty_png);
 	if(!ctx){
 		ret = -1;
 		goto out;
@@ -356,6 +357,7 @@ MRCtex* __No_Banner(const char* title, int width, int height, void *img) {
 		ret = -1;
 		goto out;
 	}
+	//PNGU_DECODE_TO_COORDS_RGBA8(ctx, 0, 0, imgProp.imgWidth, imgProp.imgHeight, 255, imgProp.imgWidth, imgProp.imgHeight, framebufferRGBA);
 	
 	tex=allocate_memory(sizeof(MRCtex));
 	tex->width=imgProp.imgWidth;
@@ -367,7 +369,15 @@ MRCtex* __No_Banner(const char* title, int width, int height, void *img) {
 	
 	// Decode PNG
 	PNGU_DECODE_TO_COORDS_RGBA8(ctx, 0, 0, imgProp.imgWidth, imgProp.imgHeight, 255, imgProp.imgWidth, imgProp.imgHeight, tex->buffer);
-	
+	MRC_Draw_String(10,40, 0xFFFFFFFF, title);
+	/*int* temp=allocate_memory(sizeof(int)*width*height);
+	for(iy=0; iy<height; iy++){
+		for(ix=0; ix<width; ix++){
+			int* puntero = (int*)framebufferRGBA;
+			temp[iy*tex->width+ix]=puntero[iy*vmode->fbWidth+ix];
+		}
+	}
+	tex->buffer=temp;*/
 out:
 	// Free memory
 	if (ctx)

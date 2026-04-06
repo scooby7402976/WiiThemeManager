@@ -2,11 +2,12 @@
 <app version="1">
 	<name>Theme Manager</name>
 	<version>1.0</version>
-        <release_date>20260401</release_date>
+        <release_date>19700131</release_date>
 	<coder>Scooby74029</coder>
 	<short_description>Wii/vWii Theme Manager. </short_description>
 	<long_description>Wii/vWii System Menu Theme Installer .
 Wii/vWii System Menu Theme Downloader .
-(Powered by WiiThemer.Org)</long_description>
+(Powered by WiiThemer.Org)
+With an Internet connection, build and download a theme straight to the sd/usd to install .</long_description>
 	<ahb_access/>
 </app>

@@ -73,9 +73,8 @@ s32 Fat_ReadFile(const char *filepath, void **outbuf, bool needloading) {
 	FILE *fp     = NULL;
 	void *buffer = NULL;
 
-	u32         filelen;
-
-	s32 ret;
+	u32 filelen;
+	s32 ret, h = 0;
 
 	/* Open file */
 	fp = fopen(filepath, "rb");
@@ -96,7 +95,10 @@ s32 Fat_ReadFile(const char *filepath, void **outbuf, bool needloading) {
 	ret = fread(buffer, 1, filelen, fp);
 	if (ret != filelen)
 		goto err;
-
+	while(h != filelen) {
+		h = ret;
+		if(needloading) __Draw_Loading(440, 440);
+	}
 	/* Set pointer */
 	*outbuf = buffer;
 
@@ -151,21 +153,25 @@ bool Fat_CheckFile(const char *filepath) {
 }
 
 s32 Fat_SaveFile(const char *filepath, void **outbuf, u32 outlen) {
-	s32 ret;
+	s32 ret, h = 0;
 	FILE *fd;
 	
-	__Draw_Loading(440, 440);
+	//__Draw_Loading(440, 440);
 	fd = fopen(filepath, "wb");
 	if(fd){
 		__Draw_Loading(440, 440);
 		ret=fwrite(*outbuf, 1, outlen, fd);
+		while(h != outlen) {
+			h = ret;
+			__Draw_Loading(440, 440);
+		}
 		fclose(fd);
-		__Draw_Loading(440, 440);
+		
 	}
 	else{
 		ret=-1;
 	}
-	__Draw_Loading(440, 440);
+	//__Draw_Loading(440, 440);
 	return ret;
 }
 

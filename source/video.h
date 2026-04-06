@@ -46,7 +46,7 @@ void MRC_Finish(void);
 
 void __MaskBanner(MRCtex* tex);
 MRCtex* __Create_No_Banner(const char* title, int width, int height);
-MRCtex* __No_Banner(const char* title, int width, int height, void *img);
+MRCtex* __No_Banner(const char* title, int width, int height);
 //void MRC_Capture(void);
 
 #endif

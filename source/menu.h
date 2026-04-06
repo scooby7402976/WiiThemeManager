@@ -41,6 +41,7 @@
 #define EMPTY			-1
 
 #define BLACK	0x000000FF
+#define HALF_BLACK 0x00000080
 #define YELLOW	0xFFFF00FF
 #define WHITE	0xFFFFFFFF
 #define WHITE_SMOKE	0xF5F5F5FF
@@ -48,10 +49,10 @@
 #define RED     0xFF0000FF
 #define GRAY    0x525252FF
 #define GREEN   0x008000ff
-#define TRANS_WHITE  0xFFFFFF50
+#define TRANS_WHITE  0xFFFFFF40
 
 #define ZCHUNK 16384
-
+#define ALIGN32(x) (((x) + 31) & ~31)
 
 #include "video.h"
 
@@ -69,7 +70,7 @@ typedef struct{
 	char *id;
 	char *png;
 	char *mym;
-	
+	int downloadcount;
 } ModTheme; 
 
 typedef struct{
