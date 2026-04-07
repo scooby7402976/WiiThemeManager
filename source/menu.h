@@ -48,8 +48,9 @@
 #define ORANGE	0xFF8000FF
 #define RED     0xFF0000FF
 #define GRAY    0x525252FF
-#define GREEN   0x008000ff
+#define GREEN   0x008000FF
 #define TRANS_WHITE  0xFFFFFF40
+#define NO_BANNER_COLOR 0xF5B432FF
 
 #define ZCHUNK 16384
 #define ALIGN32(x) (((x) + 31) & ~31)

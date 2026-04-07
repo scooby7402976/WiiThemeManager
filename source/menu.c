@@ -351,7 +351,7 @@ void __Draw_Page(int selected) {
 	if(themecnt == 0 || !pageLoaded[page]){
 		return;
 	}
-
+	logfile("drawing page before setting themes\n");
 	// themes
 	theme = COLS[wideScreen]*ROWS*page;
 	y = FIRSTROW;
@@ -369,11 +369,11 @@ void __Draw_Page(int selected) {
 					MRC_Draw_String(x - containerWidth/2, y + 50, WHITE, tempString);
 					if(downloadable_theme_List) {
 						if(netconnection)
-							if(ThemeList[theme].has_banner == false)
+							if(ThemeList[orden[theme]].has_banner == false)
 								MRC_Draw_String((640-strlen("[1] - Download Image")*8)-15, 430, WHITE, "[1] - Download Image");
 					}
 					else {
-						if(ThemeList[theme].has_banner == false)
+						if(ThemeList[orden[theme]].has_banner == false)
 							MRC_Draw_String((640-strlen("[1] - Delete File")*8)-15, 430, WHITE, "[1] - Delete File");
 					}
 				}else{
@@ -386,7 +386,7 @@ void __Draw_Page(int selected) {
 		}
 		y += SEPARACIONY;
 	}
-	
+	logfile("drawing page after setting themes\n");
 	//if(!downloadable_theme_List)
 	//	MRC_Draw_String((640-strlen("[1] - Delete File")*8)-15, 430, WHITE, "[1] - Delete File");
 	// Page number
@@ -833,21 +833,12 @@ u32 filelist_retrieve(bool downloadable_theme_list, int filter) {
 			logfile("Unable to open %s\n", filepath);
 			return 0;
 		}
-		if(filter != 0) {
-			while (fgets(filebuf, 256, themelist) != NULL)
-				j++;
-			fclose(themelist);
-			themelist = fopen(filepath, "r");
-			if(!themelist) {
-				logfile("Unable to open %s\n", filepath);
-				return 0;
-			}
-		}
+		
 		//logfile("filter[%c]\n", filter);
 		while (fgets(filebuf, 256, themelist) != NULL) {
 			//logfile("line[%d]wfilter[%d] -> %c\n", j, x, filebuf[0]);
 			if(filebuf[0] == filter || filter == 0) {
-lastentryfiltered:            
+            
 				str_copy = strdup(filebuf); // Use strdup to create a writable copy
                 if (str_copy == NULL) {
                     logfile("strdup failed\n");
@@ -886,13 +877,7 @@ lastentryfiltered:
 					ThemeList[x].downloadcount = 0;
 					x++;
                 }
-				if(x==j) {
-					if(filter != 0) {
-						sprintf(filebuf,"%c,,,,,", filter);
-						x++;
-						goto lastentryfiltered;
-					}
-				}
+				
 			}
             __Draw_Loading(440, 440);
 		}
@@ -906,6 +891,7 @@ lastentryfiltered:
 		if(filter != 0) cnt = x;
     }
 	else {
+		logfile("in retreive list installs\n");
 		//Generate dirpath 
 		DIR *dir;
 		sprintf(dirpath, "%s:/themes", get_storage_name(thememode));
@@ -924,7 +910,7 @@ lastentryfiltered:
 				mkdir(dirpath,0777);
 				return 0;
 			}
-		}
+		}else logfile("dir open\n");
 		cnt = 0;
 		// Get directory entries 
 		while((entry = readdir(dir))) // If we get EOF, the expression is 0 and
@@ -932,7 +918,7 @@ lastentryfiltered:
 		{
 			if(strncmp(entry->d_name, ".", 1) != 0 && strncmp(entry->d_name, "..", 2) != 0)
 			cnt += 1;
-            __Draw_Loading(440, 440);
+            
 		}
 		rewinddir(dir);
 		ent = allocate_memory(sizeof(dirent_t) * cnt);
@@ -953,7 +939,7 @@ lastentryfiltered:
 		qsort(ThemeList, cnt, sizeof(ModTheme), __themeCmp);
 		closedir(dir);
 	}
-	
+	logfile("leaving retreive\n");
     return cnt;
 }
 void __Set_Theme_Order() {
@@ -987,7 +973,7 @@ void __Set_Theme_Order() {
 		orden[posiciones[i]]=i;
 	}
 	free(posiciones);
-
+	logfile("almost out of set theme order()\n");
 	selectedtheme=0;
 	page=0;
 	findnumpages();
@@ -1024,15 +1010,17 @@ void __Finish_ALL_GFX() {
 }
 void __Load_Images_From_Page() {
 	void *imgBuffer=NULL;
-	int i, max, pos, ret, theme;
+	int i, max, pos, ret = -1, theme;
 	max = COLS[wideScreen]*ROWS;
 	pos = max*page;
+	logfile("before loading banner img\n");
 	for(i = 0; i < max; i++){
 		theme = orden[pos+i];
 		if(theme != EMPTY){
-			if(ThemeList[theme].type == 10)
+			if(ThemeList[theme].type == 10) 
 				sprintf(tempString,"%s:/apps/thememanager/imgs/%s", get_storage_name(thememode), ThemeList[theme].png);
 			ret = Fat_ReadFile(tempString, &imgBuffer, 1);
+			
 			// Decode image
 			if(ret > 0){
 				ThemeList[theme].banner = MRC_Load_Texture(imgBuffer);
@@ -1040,7 +1028,8 @@ void __Load_Images_From_Page() {
 				ThemeList[theme].has_banner = true;
 			}
 			else{
-				ThemeList[theme].banner = __No_Banner(ThemeList[theme].title, ANCHOIMAGEN[wideScreen], ALTOIMAGEN);
+				ThemeList[theme].banner = __Create_No_Banner("Theme Manager", ANCHOIMAGEN[wideScreen], ALTOIMAGEN);
+				
 			}
 			MRC_Resize_Texture(ThemeList[theme].banner, ANCHOIMAGEN[wideScreen], ALTOIMAGEN);
 			__MaskBanner(ThemeList[theme].banner);
@@ -1048,6 +1037,7 @@ void __Load_Images_From_Page() {
 		}
 		//MRC_Draw_Texture(64, 440, configuracionJuegos[theme].banner);
 	}
+	logfile("after loading banner img\n");
 	pageLoaded[page] = TRUE;
 	return;
 }
@@ -2191,7 +2181,7 @@ bool is_theme_region_specific(int input_theme) {
 int retrieve_themefilesize(int pos) {
 	//char *size = "0";
 	int ret, size1 = 0, basetheme_len = 0;
-	char sitepath[512];
+	char sitepath[128];
 	const char *siteUrl = "http://www.wiithemer.org/resources/mym/";
 	//u32 outlen = 0;
 	//u32 http_status = 0;
@@ -3150,7 +3140,7 @@ int __Select_Device() {
 		else repaint = true;
 	}
 	__Draw_Loading(440, 440);
-	//logfile("leaving select device mode ->> %d\n", mode);
+	logfile("leaving select device mode ->> %d\n", mode);
 	return mode;
 }
 const char *spinoptions(int input) {
@@ -3738,6 +3728,7 @@ void Menu_Loop(){
 				if(themecnt > 0) __Free_Channel_Images();
 				themecnt = 0;
 				themecnt = filelist_retrieve(downloadable_theme_List, 0);
+				logfile("themecnt[%d]\n", themecnt);
 				if(themecnt<=0) {
 					ret = MENU_HOME;
 				}

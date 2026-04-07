@@ -7,7 +7,7 @@
 #include "libpng/pngu/pngu.h"
 #include "wpad.h"
 #include "tools.h"
-
+#include "menu.h"
 #include "cursor_png.h"
 #include "font_png.h"
 #include "font2_png.h"
@@ -319,8 +319,8 @@ void __MaskBanner(MRCtex* tex){
 MRCtex* __Create_No_Banner( const char* title, int width, int height){
 	MRCtex* newTex=allocate_memory(sizeof(MRCtex));
 	
-	MRC_Draw_Box(0, 0, width, height, 0x303850FF);
-	MRC_Draw_String(10,40, 0xFFFFFFFF, title);
+	MRC_Draw_Box(0, 0, width, height, NO_BANNER_COLOR);
+	MRC_Draw_String2(10,30, HALF_BLACK, title);
 
 	newTex->width=width;
 	newTex->height=height;
