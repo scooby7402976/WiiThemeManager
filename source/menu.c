@@ -351,7 +351,7 @@ void __Draw_Page(int selected) {
 	if(themecnt == 0 || !pageLoaded[page]){
 		return;
 	}
-	logfile("drawing page before setting themes\n");
+	//logfile("drawing page before setting themes\n");
 	// themes
 	theme = COLS[wideScreen]*ROWS*page;
 	y = FIRSTROW;
@@ -386,7 +386,7 @@ void __Draw_Page(int selected) {
 		}
 		y += SEPARACIONY;
 	}
-	logfile("drawing page after setting themes\n");
+	//logfile("drawing page after setting themes\n");
 	//if(!downloadable_theme_List)
 	//	MRC_Draw_String((640-strlen("[1] - Delete File")*8)-15, 430, WHITE, "[1] - Delete File");
 	// Page number
@@ -891,7 +891,7 @@ u32 filelist_retrieve(bool downloadable_theme_list, int filter) {
 		if(filter != 0) cnt = x;
     }
 	else {
-		logfile("in retreive list installs\n");
+		//logfile("in retreive list installs\n");
 		//Generate dirpath 
 		DIR *dir;
 		sprintf(dirpath, "%s:/themes", get_storage_name(thememode));
@@ -939,7 +939,7 @@ u32 filelist_retrieve(bool downloadable_theme_list, int filter) {
 		qsort(ThemeList, cnt, sizeof(ModTheme), __themeCmp);
 		closedir(dir);
 	}
-	logfile("leaving retreive\n");
+	//logfile("leaving retreive\n");
     return cnt;
 }
 void __Set_Theme_Order() {
@@ -973,7 +973,7 @@ void __Set_Theme_Order() {
 		orden[posiciones[i]]=i;
 	}
 	free(posiciones);
-	logfile("almost out of set theme order()\n");
+	//logfile("almost out of set theme order()\n");
 	selectedtheme=0;
 	page=0;
 	findnumpages();
@@ -1013,7 +1013,7 @@ void __Load_Images_From_Page() {
 	int i, max, pos, ret = -1, theme;
 	max = COLS[wideScreen]*ROWS;
 	pos = max*page;
-	logfile("before loading banner img\n");
+	//logfile("before loading banner img\n");
 	for(i = 0; i < max; i++){
 		theme = orden[pos+i];
 		if(theme != EMPTY){
@@ -1037,7 +1037,7 @@ void __Load_Images_From_Page() {
 		}
 		//MRC_Draw_Texture(64, 440, configuracionJuegos[theme].banner);
 	}
-	logfile("after loading banner img\n");
+	//logfile("after loading banner img\n");
 	pageLoaded[page] = TRUE;
 	return;
 }
@@ -2751,7 +2751,7 @@ int __Downloadthemepng() {
 	bool repaint = true;
 	char filename[64];
 	char filepath[128];
-	
+	int file_num[9] = {};
 	// Create/restore hotspots
 	Wpad_CleanHotSpots();
 	for(i = 0; i < 9; i++){
@@ -2762,27 +2762,43 @@ int __Downloadthemepng() {
 			img_button_height,
 			(i == 0 ? 8 : i - 1),
 			(i == 8 ? 0 : i + 1),
-			i, i
+			(i == 0 ? 8 : i - 1),
+			(i == 8 ? 0 : i + 1)
 		);
 	}
-	__Draw_Window(240, 260, "Download Theme Images :");
-	MRC_Draw_String(270, 365, BLACK, "[B] - Cancel");
+	for(i=0;i<9; i++) {
+		sprintf(filepath, "%s:/apps/thememanager/thememanagerimgs%d.zip",get_storage_name(thememode) , i + 1);
+		if(Fat_CheckFile(filepath)) {
+			file_num[i] = 1;
+		}
+		else {
+			file_num[i] = 0;
+		}
+	}
+	MRC_Draw_Texture(0, 0, textures[TEX_BACKGROUND]);
+	sprintf(tempString, "System Menu v%s_%s %u", get_system_version_Display(system_Version), get_display_region(system_Version), system_Version);
+	MRC_Draw_String(((640-strlen(tempString)*8)/2), 20, WHITE, tempString);
+	sprintf(tempString, "IOS %i", IOS_GetVersion());
+	MRC_Draw_String(20, 20, WHITE, tempString);
+	MRC_Draw_String(20, 450, WHITE, "[A] - Select Image Zip File");
+	MRC_Draw_String((640-strlen("[B] - Return")*8)-5, 450, WHITE, "[B] - Return");
+	MRC_Draw_String2((640-strlen("Download Theme Images :")*8)/2, 50, WHITE, "Download Theme Images :");
+	//__Draw_Window(240, 260, "Download Theme Images :");
+	//MRC_Draw_String(270, 365, BLACK, "[B] - Return");
 	// Loop
 	hotSpot = hotSpotPrev = -1;
 	
 	for(;;){
 		hotSpot = Wpad_Scan();
-
+		
 		// If hot spot changed
 		if((hotSpot != hotSpotPrev && hotSpot < 9) || repaint){
 			hotSpotPrev = hotSpot;
 			
 			for(i = 0; i < 9; i++) {
-				sprintf(filename, "%s %d", "Image Zip File", i + 1); 
+				sprintf(filename, "%s %d", "Image Zip File", i + 1);
 				__Draw_Button(i, filename, hotSpot == i);
-				sprintf(filepath, "%s:/apps/thememanager/thememanagerimgs%d.zip",get_storage_name(thememode) , i + 1);
-				if(Fat_CheckFile(filepath)) MRC_Draw_Box(img_button_x-50, img_button_y+i*(img_button_height+img_button_seperation), 20, 20, GREEN);
-				else MRC_Draw_Box(img_button_x-50, img_button_y+i*(img_button_height+img_button_seperation), 20, 20, RED);
+				MRC_Draw_Box(img_button_x-50, img_button_y+i*(img_button_height+img_button_seperation), 20, 20, file_num[i] == 0 ? RED : GREEN);
 			}
 			//__Draw_Button(1, "Spin", hotSpot == 1);
 			//__Draw_Button(2, "Fast Spin", hotSpot == 2);
