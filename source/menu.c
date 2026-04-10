@@ -346,7 +346,9 @@ void __Draw_Page(int selected) {
 	sprintf(tempString, "IOS %i", IOS_GetVersion());
 	MRC_Draw_String(45, 20, WHITE, tempString);
 	MRC_Draw_String(25, 450, WHITE, "[A] - Select Theme");
-	MRC_Draw_String((640-strlen("[HOME] - Options")*8)-15, 450, WHITE, "[HOME] - Options");
+	if(downloadable_theme_List)
+		MRC_Draw_String((640-strlen("[2/X] - Filter Themes")*8)-15, 430, WHITE, "[2/X] - Filter Themes");
+	MRC_Draw_String((640-strlen("[Home/Start] - Options")*8)-15, 450, WHITE, "[Home/Start] - Options");
 		
 	if(themecnt == 0 || !pageLoaded[page]){
 		return;
@@ -363,21 +365,21 @@ void __Draw_Page(int selected) {
 					MRC_Draw_Texture(x, y, textures[TEX_EMPTY]);
 					MRC_Draw_Tile(x, y, textures[TEX_CONTAINER], containerWidth, 0);
 				}else if(selected == i*COLS[wideScreen]+j){
-					MRC_Draw_Texture(x, y, ThemeList[orden[theme]].banner);
+					MRC_Draw_Texture(x, y, ThemeList[theme].banner);
 					MRC_Draw_Tile(x, y, textures[TEX_CONTAINER], containerWidth, 1);
-					sprintf(tempString, "%s", ThemeList[orden[theme]].title);
+					sprintf(tempString, "%s", ThemeList[theme].title);
 					MRC_Draw_String(x - containerWidth/2, y + 50, WHITE, tempString);
 					if(downloadable_theme_List) {
 						if(netconnection)
-							if(ThemeList[orden[theme]].has_banner == false)
-								MRC_Draw_String((640-strlen("[1] - Download Image")*8)-15, 430, WHITE, "[1] - Download Image");
+							if(ThemeList[theme].has_banner == false)
+								MRC_Draw_String(25, 430, WHITE, "[1/Y] - Download Image");
 					}
 					else {
-						if(ThemeList[orden[theme]].has_banner == false)
-							MRC_Draw_String((640-strlen("[1] - Delete File")*8)-15, 430, WHITE, "[1] - Delete File");
+						if(ThemeList[theme].has_banner == false)
+							MRC_Draw_String((640-strlen("[1] - Delete File")*8)-15, 430, WHITE, "[1/Y] - Delete File");
 					}
 				}else{
-					MRC_Draw_Texture(x, y, ThemeList[orden[theme]].banner);
+					MRC_Draw_Texture(x, y, ThemeList[theme].banner);
 					MRC_Draw_Tile(x, y, textures[TEX_CONTAINER], containerWidth, 0);
 				}
 			}
@@ -397,7 +399,7 @@ void __Draw_Page(int selected) {
 		if(orden[moving_Theme]==EMPTY){
 			MRC_Draw_Texture(Wpad_GetWiimoteX(), Wpad_GetWiimoteY(), textures[TEX_EMPTY]);
 		}else{
-			MRC_Draw_Texture(Wpad_GetWiimoteX(), Wpad_GetWiimoteY(), ThemeList[orden[moving_Theme]].banner);
+			MRC_Draw_Texture(Wpad_GetWiimoteX(), Wpad_GetWiimoteY(), ThemeList[moving_Theme].banner);
 		}
 	}
 
@@ -1569,7 +1571,7 @@ int __Select_Theme(){
 	//u32 buttons;
 	u32 outlen = 0;
 	u32 http_status = 0;
-	u32 Maxsize = 4294967295;
+	u32 Maxsize = 0xFFFFFFFF;
 	u8* outbuf = NULL;
 	MRCtex *themeImage, *projection;
 	char *c, *r, a;
