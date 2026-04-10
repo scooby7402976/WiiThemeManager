@@ -3210,7 +3210,7 @@ const char *spinoptions(int input) {
 	return rtn;
 }
 int __Spin_Question() {
-	int i, hotSpot, hotSpotPrev, ret, SPIN_BUTTON_X = 270, SPIN_BUTTON_Y = 205, SPIN_BUTTON_WIDTH = 100, SPIN_BUTTON_HEIGHT = 20, SPIN_BUTTON_SEPARATION = 10;
+	int i, hotSpot, hotSpotPrev, ret, SPIN_BUTTON_X = 270, SPIN_BUTTON_Y = 190, SPIN_BUTTON_WIDTH = 100, SPIN_BUTTON_HEIGHT = 20, SPIN_BUTTON_SEPARATION = 20;
 	bool repaint = true;
 	char * spin_type[3] = {"No Spin", "Spin", "Fast Spin"};
 	
@@ -3230,8 +3230,16 @@ int __Spin_Question() {
 		);
 	}
 
-	__Draw_Window(240, 120, "Channel Spin Option :");
-	MRC_Draw_String(270, 295, BLACK, "[B] - Return");
+	//__Draw_Window(240, 120, "Channel Spin Option :");
+	//MRC_Draw_String(270, 295, BLACK, "[B] - Return");
+	MRC_Draw_Texture(0, 0, textures[TEX_BACKGROUND]);
+	sprintf(tempString, "System Menu v%s_%s %u", get_system_version_Display(system_Version), get_display_region(system_Version), system_Version);
+	MRC_Draw_String(((640-strlen(tempString)*8)/2), 20, WHITE, tempString);
+	sprintf(tempString, "IOS %i", IOS_GetVersion());
+	MRC_Draw_String(20, 20, WHITE, tempString);
+	MRC_Draw_String(20, 450, WHITE, "[A] - Select Spin Option");
+	MRC_Draw_String((640-strlen("[B] - Return")*8)-15, 450, WHITE, "[B] - Return");
+	MRC_Draw_String2((640-strlen("Spin Option :")*8)/2,80, WHITE, "Spin Option :");
 	hotSpot = hotSpotPrev = -1;
 
 	ret = MENU_SELECT_THEME;
