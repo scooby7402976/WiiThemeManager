@@ -3274,7 +3274,7 @@ int __Spin_Question() {
 	return ret;
 }
 int __Spin_Color_Question() {
-	int i, hotSpot, hotSpotPrev, ret, COLOR_BUTTON_X = 270, COLOR_BUTTON_Y = 135, COLOR_BUTTON_WIDTH = 100, COLOR_BUTTON_HEIGHT = 20, COLOR_BUTTON_SEPARATION = 5;
+	int i, hotSpot, hotSpotPrev, ret, COLOR_BUTTON_X = 270, COLOR_BUTTON_Y = 125, COLOR_BUTTON_WIDTH = 100, COLOR_BUTTON_HEIGHT = 20, COLOR_BUTTON_SEPARATION = 10;
 	bool repaint = true;
 	char * spin_color[10] ={"Black", "Blue", "Green", "Orange", "Pink", "Purple", "Red", "White", "Yellow", "Original"};
 	// Create/restore hotspots
@@ -3292,8 +3292,16 @@ int __Spin_Color_Question() {
 		);
 	}
 
-	__Draw_Window(240, 300, "Channel Spin Color Option :");
-	MRC_Draw_String(270, 390, BLACK, "[B] - Return");
+	//__Draw_Window(240, 300, "Channel Spin Color Option :");
+	//MRC_Draw_String(270, 390, BLACK, "[B] - Return");
+	MRC_Draw_Texture(0, 0, textures[TEX_BACKGROUND]);
+	sprintf(tempString, "System Menu v%s_%s %u", get_system_version_Display(system_Version), get_display_region(system_Version), system_Version);
+	MRC_Draw_String(((640-strlen(tempString)*8)/2), 20, WHITE, tempString);
+	sprintf(tempString, "IOS %i", IOS_GetVersion());
+	MRC_Draw_String(20, 20, WHITE, tempString);
+	MRC_Draw_String(20, 450, WHITE, "[A] - Select Spin Option");
+	MRC_Draw_String((640-strlen("[B] - Return")*8)-15, 450, WHITE, "[B] - Return");
+	MRC_Draw_String2((640-strlen("Spin Color Option :")*8)/2,60, WHITE, "Spin Color Option :");
 	// Loop
 	hotSpot = hotSpotPrev = -1;
 
