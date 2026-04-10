@@ -2828,7 +2828,8 @@ int __Downloadthemepng() {
 			for(i = 0; i < 9; i++) {
 				sprintf(filename, "%s %d", "Image Zip File", i + 1);
 				__Draw_Button(i, filename, hotSpot == i);
-				MRC_Draw_Box(img_button_x-50, img_button_y+i*(img_button_height+img_button_seperation), 20, 20, file_num[i] == 0 ? RED : GREEN);
+				MRC_Draw_Box(img_button_x-50, (img_button_y+i*(img_button_height+img_button_seperation)-2), 20, 20, NO_BANNER_COLOR);
+				MRC_Draw_Box(img_button_x-48, img_button_y+i*(img_button_height+img_button_seperation), 16, 16, file_num[i] == 0 ? RED : GREEN);
 			}
 			//__Draw_Button(1, "Spin", hotSpot == 1);
 			//__Draw_Button(2, "Fast Spin", hotSpot == 2);
