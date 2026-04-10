@@ -76,7 +76,6 @@ static int loadingAnim = 0;
 static bool display_progress = false;
 static bool saveconfig = false;
 static bool pageLoaded[75];
-char tempString[128];
 ModTheme ThemeList[MAXTHEMES];
 CurthemeStats curthemestats;
 dirent_t *ent = NULL;
@@ -337,14 +336,15 @@ void __Draw_Page(int selected) {
 	int i, j, x, y, containerWidth, theme;
 	//framebufferRGBA = NULL;
 	containerWidth=textures[TEX_CONTAINER]->width/2;
-
+	char pagemessage[64];
+	
 	MRC_Draw_Texture(0, 0, textures[TEX_BACKGROUND]);
-	sprintf(tempString, "System Menu v%s_%s %u", get_system_version_Display(system_Version), get_display_region(system_Version), system_Version);
-	MRC_Draw_String(((640-strlen(tempString)*8)/2), 20, WHITE, tempString);
+	sprintf(pagemessage, "System Menu v%s_%s %u", get_system_version_Display(system_Version), get_display_region(system_Version), system_Version);
+	MRC_Draw_String(((640-strlen(pagemessage)*8)/2), 20, WHITE, pagemessage);
 	if(downloadable_theme_List) MRC_Draw_String(((640-strlen("Downloader")*8)/2), 50, WHITE, "Downloader");
 	else MRC_Draw_String(((640-strlen("Installer")*8)/2), 50, WHITE, "Installer");
-	sprintf(tempString, "IOS %i", IOS_GetVersion());
-	MRC_Draw_String(45, 20, WHITE, tempString);
+	sprintf(pagemessage, "IOS %i", IOS_GetVersion());
+	MRC_Draw_String(45, 20, WHITE, pagemessage);
 	MRC_Draw_String(25, 450, WHITE, "[A] - Select Theme");
 	if(downloadable_theme_List)
 		MRC_Draw_String((640-strlen("[2/X] - Filter Themes")*8)-15, 430, WHITE, "[2/X] - Filter Themes");
@@ -356,6 +356,7 @@ void __Draw_Page(int selected) {
 	//logfile("drawing page before setting themes\n");
 	// themes
 	theme = COLS[wideScreen]*ROWS*page;
+	logfile("theme name ->> %s\n", ThemeList[theme].title);
 	y = FIRSTROW;
 	for(i = 0; i < ROWS; i++){
 		x = FIRSTCOL[wideScreen];
@@ -367,8 +368,8 @@ void __Draw_Page(int selected) {
 				}else if(selected == i*COLS[wideScreen]+j){
 					MRC_Draw_Texture(x, y, ThemeList[theme].banner);
 					MRC_Draw_Tile(x, y, textures[TEX_CONTAINER], containerWidth, 1);
-					sprintf(tempString, "%s", ThemeList[theme].title);
-					MRC_Draw_String(x - containerWidth/2, y + 50, WHITE, tempString);
+					sprintf(pagemessage, "%s", ThemeList[theme].title);
+					MRC_Draw_String(x - containerWidth/2, y + 50, WHITE, pagemessage);
 					if(downloadable_theme_List) {
 						if(netconnection)
 							if(ThemeList[theme].has_banner == false)
@@ -392,8 +393,8 @@ void __Draw_Page(int selected) {
 	//if(!downloadable_theme_List)
 	//	MRC_Draw_String((640-strlen("[1] - Delete File")*8)-15, 430, WHITE, "[1] - Delete File");
 	// Page number
-	sprintf(tempString, "%d of %d %s", page + 1, maxPages, (maxPages == 1 ? "page" : "pages"));
-	MRC_Draw_String(55, 60, WHITE, tempString);
+	sprintf(pagemessage, "%d of %d %s", page + 1, maxPages, (maxPages == 1 ? "page" : "pages"));
+	MRC_Draw_String(55, 60, WHITE, pagemessage);
 
 	if(moving_Theme > -1){
 		if(orden[moving_Theme]==EMPTY){
@@ -1015,13 +1016,15 @@ void __Load_Images_From_Page() {
 	int i, max, pos, ret = -1, theme;
 	max = COLS[wideScreen]*ROWS;
 	pos = max*page;
+	char loadmessage[128];
+	
 	//logfile("before loading banner img\n");
 	for(i = 0; i < max; i++){
 		theme = orden[pos+i];
 		if(theme != EMPTY){
 			if(ThemeList[theme].type == 10) 
-				sprintf(tempString,"%s:/apps/thememanager/imgs/%s", get_storage_name(thememode), ThemeList[theme].png);
-			ret = Fat_ReadFile(tempString, &imgBuffer, 1);
+				sprintf(loadmessage,"%s:/apps/thememanager/imgs/%s", get_storage_name(thememode), ThemeList[theme].png);
+			ret = Fat_ReadFile(loadmessage, &imgBuffer, 1);
 			
 			// Decode image
 			if(ret > 0){
@@ -1053,13 +1056,15 @@ void __load_textures() {
 
 	int i, ret;
 	char *imgData = NULL;
+	char loadmessage[128];
+	
 	for(i = 0; i < MAX_TEXTURES; i++){
 		if(thememode == -1) {
 			textures[i] = MRC_Load_Texture((void *)defaultTextures[i]);
 		}
 		else {
-			sprintf(tempString, "%s:/apps/theme_manager/theme_manager%s.png", get_storage_name(thememode), fileNames[i]);
-			ret = Fat_ReadFile(tempString, (void*)&imgData, 0);
+			sprintf(loadmessage, "%s:/apps/theme_manager/theme_manager%s.png", get_storage_name(thememode), fileNames[i]);
+			ret = Fat_ReadFile(loadmessage, (void*)&imgData, 0);
 			if(ret>0) {
 				textures[i] = MRC_Load_Texture(imgData);
 				free(imgData);
@@ -1719,10 +1724,10 @@ int __Select_Theme(){
 							if(netconnection) {
 								MRC_Draw_Texture(20, 225, textures[TEX_MESSAGE_BUBBLE]);
 								__Draw_Message("Downloading Image . Please wait .", 235, BLACK);
-								sprintf(tempString,"http://www.wiithemer.org/resources/wii/main/%s" ,ThemeList[orden[selectedtheme]].png);
+								sprintf(tmpstr,"http://www.wiithemer.org/resources/wii/main/%s" ,ThemeList[orden[selectedtheme]].png);
 								//if(debugcard) logfile("tempstring = %s\n", tempString);
 								display_progress = true;
-								ret = http_request(tempString, Maxsize, display_progress);
+								ret = http_request(tmpstr, Maxsize, display_progress);
 								display_progress = false;
 								if(ret != 0 ) {
 									ret = http_get_result(&http_status, &outbuf, &outlen);
@@ -2325,6 +2330,8 @@ int __Show_Theme(){
 	u32 http_status = 0;
 	u32 Maxsize = 0xFFFFFFFF;
 	u8* outbuf = NULL;
+	char tmpstr[64];
+	
 	//char *officialthemes[5] = { "Unsigned Theme", "Original Theme Unmodified", "Wii Themer Signed", "Theme Manager Signed", "ModMii Signed"};
 	//if(!sigchecked) checkofficialthemesig(thetheme->title);
 	
@@ -2380,12 +2387,12 @@ int __Show_Theme(){
 	
 	// Load image from FAT
 	if(ThemeList[selectedtheme].type == 20)
-		sprintf(tempString,"%s:/apps/thememanager/imgs/theme_manager_installer_empty.png",get_storage_name(thememode));
+		sprintf(filepath,"%s:/apps/thememanager/imgs/theme_manager_installer_empty.png",get_storage_name(thememode));
 	else if(ThemeList[selectedtheme].type == 10)
-		sprintf(tempString,"%s:/apps/thememanager/imgs/%s" , get_storage_name(thememode), ThemeList[selectedtheme].png);
+		sprintf(filepath,"%s:/apps/thememanager/imgs/%s" , get_storage_name(thememode), ThemeList[selectedtheme].png);
 		
 	//logfile("tempstring %s \n",tempString);
-	ret = Fat_ReadFile(tempString, &imageBuffer, false);
+	ret = Fat_ReadFile(filepath, &imageBuffer, false);
 	//logfile("ret fat read file ->> %d\n", ret);
 	// Decode image
 	if(ret > 0) {
@@ -2430,12 +2437,12 @@ int __Show_Theme(){
 				MRC_Draw_String(((640-strlen(file_size)*8)/2), 450, WHITE, file_size);
 				MRC_Draw_String(((640-strlen(thetheme->title)*8)/2), 420, WHITE, thetheme->title);
 				MRC_Draw_String((640-strlen("[1/Y] - Show Image 2")*8)-10, 450, WHITE, "[1/Y] - Show Image 2");
-				sprintf(tempString, "%s", (downloadable_theme_List == 1 ? "[A] - Download Theme" : "[A] - Install Theme"));
-				MRC_Draw_String(40, 420, WHITE, tempString);
+				sprintf(tmpstr, "%s", (downloadable_theme_List == 1 ? "[A] - Download Theme" : "[A] - Install Theme"));
+				MRC_Draw_String(40, 420, WHITE, tmpstr);
 			}
 			else {
-				sprintf(tempString, "%s", (downloadable_theme_List == 1 ? "" : "[A] - Install Theme"));
-				MRC_Draw_String(40, 420, WHITE, tempString);
+				sprintf(tmpstr, "%s", (downloadable_theme_List == 1 ? "" : "[A] - Install Theme"));
+				MRC_Draw_String(40, 420, WHITE, tmpstr);
 				MRC_Draw_String(((640-strlen(thetheme->title)*8)/2), 420, WHITE, thetheme->title);
 			}
 		}
@@ -2471,12 +2478,12 @@ int __Show_Theme(){
 		else {
 			MRC_Draw_String(((640-strlen(file_size)*8)/2), 450, WHITE, file_size);
 			
-			//sprintf(tempString, "Theme Signature : %s", officialthemes[official_theme]);
-			//MRC_Draw_String(((640-strlen(tempString)*8)/2), 380, WHITE, tempString);
+			//sprintf(tmpstr, "Theme Signature : %s", officialthemes[official_theme]);
+			//MRC_Draw_String(((640-strlen(tmpstr)*8)/2), 380, WHITE, tmpstr);
 		}
-		if(!netconnection) sprintf(tempString, "%s", (downloadable_theme_List == 1 ? "" : "[A] - Install Theme"));
-		else sprintf(tempString, "%s", (downloadable_theme_List == 1 ? "[A] - Download Theme" : "[A] - Install Theme"));
-		MRC_Draw_String(30, 420, WHITE, tempString);
+		if(!netconnection) sprintf(tmpstr, "%s", (downloadable_theme_List == 1 ? "" : "[A] - Install Theme"));
+		else sprintf(tmpstr, "%s", (downloadable_theme_List == 1 ? "[A] - Download Theme" : "[A] - Install Theme"));
+		MRC_Draw_String(30, 420, WHITE, tmpstr);
 		MRC_Draw_String(30, 450, WHITE, "[B] - Back");
 	}
 	MRC_Render_Screen();
@@ -2522,10 +2529,10 @@ int __Show_Theme(){
 					
 					MRC_Draw_Texture(20, 225, textures[TEX_MESSAGE_BUBBLE]);
 					__Draw_Message("Downloading Image . Please wait .", 235, BLACK);
-					sprintf(tempString,"http://www.wiithemer.org/resources/wii/secondary/%s" ,ThemeList[selectedtheme].png);
+					sprintf(tmpstr,"http://www.wiithemer.org/resources/wii/secondary/%s" ,ThemeList[selectedtheme].png);
 					//if(debugcard) logfile("tempstring = %s\n", tempString);
 					display_progress = true;
-					ret = http_request(tempString, Maxsize, display_progress);
+					ret = http_request(tmpstr, Maxsize, display_progress);
 					display_progress = false;
 					if(ret != 0 ) {
 						ret = http_get_result(&http_status, &outbuf, &outlen);
@@ -2591,6 +2598,7 @@ int __Swap_Menu() {
 	bool repaint = true;
 	//bool showinstructions = false;
 	const char *swaps[2] = { "Installer", "Downloader" };
+	char swapmessage[64];
 	
 	// Create/restore hotspots
 	Wpad_CleanHotSpots();
@@ -2616,10 +2624,10 @@ int __Swap_Menu() {
 		
 		MRC_Draw_Texture(0, 0, textures[TEX_BACKGROUND]);
 		
-		sprintf(tempString, "System Menu v%s_%s %u", get_system_version_Display(system_Version), get_display_region(system_Version), system_Version);
-		MRC_Draw_String(((640-strlen(tempString)*8)/2), 20, WHITE, tempString);
-		sprintf(tempString, "IOS %i", IOS_GetVersion());
-		MRC_Draw_String(20, 20, WHITE, tempString);
+		sprintf(swapmessage, "System Menu v%s_%s %u", get_system_version_Display(system_Version), get_display_region(system_Version), system_Version);
+		MRC_Draw_String(((640-strlen(swapmessage)*8)/2), 20, WHITE, swapmessage);
+		sprintf(swapmessage, "IOS %i", IOS_GetVersion());
+		MRC_Draw_String(20, 20, WHITE, swapmessage);
 		MRC_Draw_String(20, 450, WHITE, "[A] - Select Mode");
 		MRC_Draw_String((640-strlen("[B] - Return")*8)-5, 450, WHITE, "[B] - Return");
 		MRC_Draw_String2((640-strlen("Choose Mode :")*8)/2,160, WHITE, "Choose Mode :");
@@ -2654,6 +2662,7 @@ int __Swap_Menu() {
 int __Home() {
 	int i, hotSpot, hotSpotPrev, ret, HOME_BUTTON_X = 210, HOME_BUTTON_Y = 125, HOME_BUTTON_WIDTH = 220, HOME_BUTTON_HEIGHT = 30, HOME_BUTTON_SEPARATION = 15;
 	bool repaint = true;
+	char homemessage[128];
 	
 	// Create/restore hotspots
 	Wpad_CleanHotSpots();
@@ -2670,10 +2679,10 @@ int __Home() {
 		);
 	}
 	MRC_Draw_Texture(0, 0, textures[TEX_BACKGROUND]);
-	sprintf(tempString, "System Menu v%s_%s %u", get_system_version_Display(system_Version), get_display_region(system_Version), system_Version);
-	MRC_Draw_String(((640-strlen(tempString)*8)/2), 20, WHITE, tempString);
-	sprintf(tempString, "IOS %i", IOS_GetVersion());
-	MRC_Draw_String(20, 20, WHITE, tempString);
+	sprintf(homemessage, "System Menu v%s_%s %u", get_system_version_Display(system_Version), get_display_region(system_Version), system_Version);
+	MRC_Draw_String(((640-strlen(homemessage)*8)/2), 20, WHITE, homemessage);
+	sprintf(homemessage, "IOS %i", IOS_GetVersion());
+	MRC_Draw_String(20, 20, WHITE, homemessage);
 	MRC_Draw_String(20, 450, WHITE, "[A] - Select Option");
 	MRC_Draw_String((640-strlen("[B] - Return")*8)-15, 450, WHITE, "[B] - Return");
 	MRC_Draw_String2((640-strlen("Options :")*8)/2, 60, WHITE, "Options :");
@@ -2819,10 +2828,10 @@ int __Downloadthemepng() {
 		}
 	}
 	MRC_Draw_Texture(0, 0, textures[TEX_BACKGROUND]);
-	sprintf(tempString, "System Menu v%s_%s %u", get_system_version_Display(system_Version), get_display_region(system_Version), system_Version);
-	MRC_Draw_String(((640-strlen(tempString)*8)/2), 20, WHITE, tempString);
-	sprintf(tempString, "IOS %i", IOS_GetVersion());
-	MRC_Draw_String(20, 20, WHITE, tempString);
+	sprintf(tmpstr, "System Menu v%s_%s %u", get_system_version_Display(system_Version), get_display_region(system_Version), system_Version);
+	MRC_Draw_String(((640-strlen(tmpstr)*8)/2), 20, WHITE, tmpstr);
+	sprintf(tmpstr, "IOS %i", IOS_GetVersion());
+	MRC_Draw_String(20, 20, WHITE, tmpstr);
 	MRC_Draw_String(20, 450, WHITE, "[A] - Select Image Zip File");
 	MRC_Draw_String((640-strlen("[B] - Return")*8)-5, 450, WHITE, "[B] - Return");
 	MRC_Draw_String2((640-strlen("Download Theme Images :")*8)/2, 50, WHITE, "Download Theme Images :");
@@ -3037,6 +3046,7 @@ int __exit_Menu() {
 	bool repaint = true;
 	//bool showinstructions = false;
 	const char *exits[3] = { "HomeBrew Channel", "Priiloader", "System Menu" };
+	char exitmessage[64];
 	
 	// Create/restore hotspots
 	Wpad_CleanHotSpots();
@@ -3053,10 +3063,10 @@ int __exit_Menu() {
 		
 		MRC_Draw_Texture(0, 0, textures[TEX_BACKGROUND]);
 		
-		sprintf(tempString, "System Menu v%s_%s %u", get_system_version_Display(system_Version), get_display_region(system_Version), system_Version);
-		MRC_Draw_String(((640-strlen(tempString)*8)/2), 20, WHITE, tempString);
-		sprintf(tempString, "IOS %i", IOS_GetVersion());
-		MRC_Draw_String(20, 20, WHITE, tempString);
+		sprintf(exitmessage, "System Menu v%s_%s %u", get_system_version_Display(system_Version), get_display_region(system_Version), system_Version);
+		MRC_Draw_String(((640-strlen(exitmessage)*8)/2), 20, WHITE, exitmessage);
+		sprintf(exitmessage, "IOS %i", IOS_GetVersion());
+		MRC_Draw_String(20, 20, WHITE, exitmessage);
 		MRC_Draw_String(20, 450, WHITE, "[A] - Select Exit To");
 		MRC_Draw_String((640-strlen("[B] - Select Device Menu")*8)-5, 420, WHITE, "[B] - Select Device Menu");
 		MRC_Draw_String((640-strlen("[HOME/Start] - Exit To HBC")*8)-5, 450, WHITE, "[HOME/Start] - Exit To HBC");
@@ -3115,6 +3125,7 @@ int __Select_Device() {
 	bool repaint = true;
 	//bool showinstructions = false;
 	const char *dev[3] = { "SD", "USB", "Choose Later" };
+	char devicemessage[64];
 	
 	// Create/restore hotspots
 	Wpad_CleanHotSpots();
@@ -3137,16 +3148,16 @@ int __Select_Device() {
 	for(;;) {
 		hotSpot = Wpad_Scan();
 		MRC_Draw_Texture(0, 0, textures[TEX_BACKGROUND]);
-		sprintf(tempString, "System Menu v%s_%s %u", get_system_version_Display(system_Version), get_display_region(system_Version), system_Version);
-		MRC_Draw_String(((640-strlen(tempString)*8)/2), 20, WHITE, tempString);
-		sprintf(tempString, "IOS %i", IOS_GetVersion());
-		MRC_Draw_String(20, 20, WHITE, tempString);
+		sprintf(devicemessage, "System Menu v%s_%s %u", get_system_version_Display(system_Version), get_display_region(system_Version), system_Version);
+		MRC_Draw_String(((640-strlen(devicemessage)*8)/2), 20, WHITE, devicemessage);
+		sprintf(devicemessage, "IOS %i", IOS_GetVersion());
+		MRC_Draw_String(20, 20, WHITE, devicemessage);
 		
-		sprintf(tempString, "Select %s Device :", (downloadable_theme_List == 1 ? "Save" : "Theme"));
-		MRC_Draw_String2(((640-strlen(tempString)*8)/2), 150, WHITE, tempString);
+		sprintf(devicemessage, "Select %s Device :", (downloadable_theme_List == 1 ? "Save" : "Theme"));
+		MRC_Draw_String2(((640-strlen(devicemessage)*8)/2), 150, WHITE, devicemessage);
 			
-		sprintf(tempString, "Device : %s", get_storage_name(thememode));
-		MRC_Draw_String(((640-strlen(tempString)*8)/2), 400, WHITE, tempString);
+		sprintf(devicemessage, "Device : %s", get_storage_name(thememode));
+		MRC_Draw_String(((640-strlen(devicemessage)*8)/2), 400, WHITE, devicemessage);
 			
 		MRC_Draw_String(25, 450, WHITE, "[A] - Select Device");
 		MRC_Draw_String((640-strlen("[HOME] - Exit Menu")*8)-15, 450, WHITE, "[HOME] - Exit Menu");
@@ -3175,10 +3186,10 @@ int __Select_Device() {
 			//if(debugcard) logfile("mode[%i] \n", mode);
 			__Draw_Loading(440, 440);
 			if(mode < 0) { 
-				sprintf(tempString, "Unable to mount %s .", dev[selected_device]);
+				sprintf(devicemessage, "Unable to mount %s .", dev[selected_device]);
 				MRC_Draw_Texture(20, 225, textures[TEX_MESSAGE_BUBBLE]);
 				__MaskBanner(textures[TEX_MESSAGE_BUBBLE]);
-				__Draw_Message(tempString, 240, BLACK);
+				__Draw_Message(devicemessage, 240, BLACK);
 				sleep(2);
 			}
 			else {
@@ -3227,6 +3238,7 @@ int __Spin_Question() {
 	int i, hotSpot, hotSpotPrev, ret, SPIN_BUTTON_X = 270, SPIN_BUTTON_Y = 190, SPIN_BUTTON_WIDTH = 100, SPIN_BUTTON_HEIGHT = 20, SPIN_BUTTON_SEPARATION = 20;
 	bool repaint = true;
 	char * spin_type[3] = {"No Spin", "Spin", "Fast Spin"};
+	char spinmessage[64];
 	
 	// Create/restore hotspots
 	Wpad_CleanHotSpots();
@@ -3247,10 +3259,10 @@ int __Spin_Question() {
 	//__Draw_Window(240, 120, "Channel Spin Option :");
 	//MRC_Draw_String(270, 295, BLACK, "[B] - Return");
 	MRC_Draw_Texture(0, 0, textures[TEX_BACKGROUND]);
-	sprintf(tempString, "System Menu v%s_%s %u", get_system_version_Display(system_Version), get_display_region(system_Version), system_Version);
-	MRC_Draw_String(((640-strlen(tempString)*8)/2), 20, WHITE, tempString);
-	sprintf(tempString, "IOS %i", IOS_GetVersion());
-	MRC_Draw_String(20, 20, WHITE, tempString);
+	sprintf(spinmessage, "System Menu v%s_%s %u", get_system_version_Display(system_Version), get_display_region(system_Version), system_Version);
+	MRC_Draw_String(((640-strlen(spinmessage)*8)/2), 20, WHITE, spinmessage);
+	sprintf(spinmessage, "IOS %i", IOS_GetVersion());
+	MRC_Draw_String(20, 20, WHITE, spinmessage);
 	MRC_Draw_String(20, 450, WHITE, "[A] - Select Spin Option");
 	MRC_Draw_String((640-strlen("[B] - Return")*8)-15, 450, WHITE, "[B] - Return");
 	MRC_Draw_String2((640-strlen("Spin Option :")*8)/2,80, WHITE, "Spin Option :");
@@ -3291,6 +3303,8 @@ int __Spin_Color_Question() {
 	int i, hotSpot, hotSpotPrev, ret, COLOR_BUTTON_X = 270, COLOR_BUTTON_Y = 125, COLOR_BUTTON_WIDTH = 100, COLOR_BUTTON_HEIGHT = 20, COLOR_BUTTON_SEPARATION = 10;
 	bool repaint = true;
 	char * spin_color[10] ={"Black", "Blue", "Green", "Orange", "Pink", "Purple", "Red", "White", "Yellow", "Original"};
+	char colormessage[64];
+	
 	// Create/restore hotspots
 	Wpad_CleanHotSpots();
 	for(i = 0; i < 10; i++){
@@ -3309,10 +3323,10 @@ int __Spin_Color_Question() {
 	//__Draw_Window(240, 300, "Channel Spin Color Option :");
 	//MRC_Draw_String(270, 390, BLACK, "[B] - Return");
 	MRC_Draw_Texture(0, 0, textures[TEX_BACKGROUND]);
-	sprintf(tempString, "System Menu v%s_%s %u", get_system_version_Display(system_Version), get_display_region(system_Version), system_Version);
-	MRC_Draw_String(((640-strlen(tempString)*8)/2), 20, WHITE, tempString);
-	sprintf(tempString, "IOS %i", IOS_GetVersion());
-	MRC_Draw_String(20, 20, WHITE, tempString);
+	sprintf(colormessage, "System Menu v%s_%s %u", get_system_version_Display(system_Version), get_display_region(system_Version), system_Version);
+	MRC_Draw_String(((640-strlen(colormessage)*8)/2), 20, WHITE, colormessage);
+	sprintf(colormessage, "IOS %i", IOS_GetVersion());
+	MRC_Draw_String(20, 20, WHITE, colormessage);
 	MRC_Draw_String(20, 450, WHITE, "[A] - Select Spin Option");
 	MRC_Draw_String((640-strlen("[B] - Return")*8)-15, 450, WHITE, "[B] - Return");
 	MRC_Draw_String2((640-strlen("Spin Color Option :")*8)/2,60, WHITE, "Spin Color Option :");
@@ -3717,6 +3731,7 @@ bool disclaimer() {
 int __StartUp_Page() { // Change USB to SD for release
 	int ret = MENU_MANAGE_DEVICE;
 	bool __exit = false, settingsfile= false;
+	char startupmessage[64];
 	
 	__Draw_Loading(440, 440);
 	ret = Get_system_version();
@@ -3750,10 +3765,10 @@ int __StartUp_Page() { // Change USB to SD for release
 	
 	//if(debugcard) logfile("system_Version = %d\n", system_Version);
 	__Draw_Loading(440, 440);	
-	sprintf(tempString, "System Menu v%s_%s %u", get_system_version_Display(system_Version), get_display_region(system_Version), system_Version);
-	MRC_Draw_String(((640-strlen(tempString)*8)/2), 20, WHITE, tempString);
-	sprintf(tempString, "IOS %i", IOS_GetVersion());
-	MRC_Draw_String(20, 20, WHITE, tempString);
+	sprintf(startupmessage, "System Menu v%s_%s %u", get_system_version_Display(system_Version), get_display_region(system_Version), system_Version);
+	MRC_Draw_String(((640-strlen(startupmessage)*8)/2), 20, WHITE, startupmessage);
+	sprintf(startupmessage, "IOS %i", IOS_GetVersion());
+	MRC_Draw_String(20, 20, WHITE, startupmessage);
 	
 	
 	__Draw_Loading(440, 440);
