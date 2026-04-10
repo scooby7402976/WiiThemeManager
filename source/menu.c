@@ -2179,14 +2179,14 @@ bool is_theme_region_specific(int input_theme) {
 	return false;
 }
 int retrieve_themefilesize(int pos) {
-	//char *size = "0";
-	int ret, size1 = 0, basetheme_len = 0;
-	char sitepath[128];
-	const char *siteUrl = "http://www.wiithemer.org/resources/mym/";
-	//u32 outlen = 0;
-	//u32 http_status = 0;
+	char *size = NULL;
+	int ret, size1 = 0, size2 = 0, basetheme_len = 0;
+	char sitepath[256];
+	const char *siteUrl = "http://www.wiithemer.org/resources/wii/index.php?action=getfilesize&themetocheck=";
+	u32 outlen = 0;
+	u32 http_status = 0;
 	u32 Maxsize = 0xFFFFFFFF;
-	//u8* outbuf = NULL;
+	u8* outbuf = NULL;
 	
 	bool mym_type;
 	bool is2stage;
@@ -2202,26 +2202,48 @@ int retrieve_themefilesize(int pos) {
 	if(mym_type) sprintf(sitepath, "%s%s%s.mym", siteUrl, ThemeList[pos].mym, get_display_region(system_Version));
 	else sprintf(sitepath, "%s%s", siteUrl, ThemeList[pos].mym);
 	__Draw_Loading(440, 440);
-	//if(debugcard) logfile("sitepath[%s]\n", sitepath);
-	ret = http_request_content_length(sitepath, Maxsize);
+	logfile("sitepath[%s]\n", sitepath);
+	ret = http_request(sitepath, Maxsize, 0);
 	//logfile("ret1[%d]\n", ret);
+	if(ret) {
+		ret = http_get_result(&http_status, &outbuf, &outlen);
+		if(ret) {
+			if(outlen > 0 && http_status == 200) {
+				size = (char*)outbuf;
+				size[outlen] = '\0';
+				logfile("size = %s\n", size);
+				size1 = atoi(size);
+			}
+		}
+	}
 	__Draw_Loading(440, 440);
 	if(is2stage) {
 		__Draw_Loading(440, 440);
 		basetheme_len = strlen(ThemeList[pos].mym);
 		snprintf(theme_noextention, basetheme_len-4, ThemeList[pos].mym);
 		//logfile("theme_noextention= %s\n", theme_noextention);
-		size1 = ret;
+		//size1 = ret;
 		sprintf(sitepath, "%s%s2.mym", siteUrl, theme_noextention); 
-		ret = http_request_content_length(sitepath, Maxsize);
+		ret = http_request(sitepath, Maxsize, 0);
 		//logfile("ret2[%d]\n", ret);
+		if(ret) {
+			ret = http_get_result(&http_status, &outbuf, &outlen);
+			if(ret) {
+				if(outlen > 0 && http_status == 200) {
+					size = (char*)outbuf;
+					size[outlen] = '\0';
+					//if(debugcard) logfile("count = %s\n", count);
+					size2 = atoi(size);
+				}
+			}
+		}
 		__Draw_Loading(440, 440);
 		*theme_noextention = 0;
 	}
 	
 	*sitepath = 0;
 	__Draw_Loading(440, 440);
-	return ret + size1;
+	return size2 + size1;
 }
 int retrieve_downloadcount(int pos) {
 	char *count = NULL;
@@ -2309,16 +2331,16 @@ int __Show_Theme(){
 				if(size > 0) ThemeList[selectedtheme].size = size;
 			}
 			else size = thetheme->size;
-			/*
-			logfile("1st downloads[%d}\n", thetheme->downloadcount);
+			
+			//logfile("1st downloads[%d}\n", thetheme->downloadcount);
 			if(thetheme->downloadcount == 0) {
 				downloadcount = retrieve_downloadcount(selectedtheme);
-				logfile("2nd downloads[%d}\n", downloadcount);
+				//logfile("2nd downloads[%d}\n", downloadcount);
 				if(downloadcount > 0) ThemeList[selectedtheme].downloadcount = downloadcount;
 			}
 			else
 				downloadcount = thetheme->downloadcount;
-			logfile("3rd downloads[%d}\n", downloadcount);*/
+			//logfile("3rd downloads[%d}\n", downloadcount);
 		}
 		sprintf(file_size, "Size: %.2f MB  Downloads : %d", size/MB_SIZE, downloadcount);
 	}
