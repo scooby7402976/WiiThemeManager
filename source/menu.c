@@ -1107,10 +1107,11 @@ s32 InstallFile(FILE * fp) {
 	char tite[256];
 	__Draw_Loading(440, 440);
 	MRC_Draw_Texture(20, 225, textures[TEX_MESSAGE_BUBBLE]);
-	sprintf(tite,"[+] Installing %s .", ThemeList[orden[selectedtheme]].title);
+	__MaskBanner(textures[TEX_MESSAGE_BUBBLE]);
+	sprintf(tite,"Installing %s Theme .", ThemeList[orden[selectedtheme]].title);
 	__Draw_Message(tite, 240, BLACK);
-	//sleep(2);
-		
+	sleep(2);
+	
 	char* content_name = stpcpy(filename, "/title/00000001/00000002/content/");
 	sprintf(content_name, "000000%s.app", getsavename(system_Version));
 	
@@ -1140,6 +1141,7 @@ s32 InstallFile(FILE * fp) {
 		
 		__Draw_Loading(440, 440);
 		MRC_Draw_Texture(20, 225, textures[TEX_MESSAGE_BUBBLE]);
+		__MaskBanner(textures[TEX_MESSAGE_BUBBLE]);
 		sprintf(tite,"Installing part %d of %d parts ,",i + 1, numchunks);
 		__Draw_Message(tite, 240, BLACK);
 		//sleep(2);
@@ -1502,14 +1504,16 @@ int __install_Theme() {  // install.app .csm file
 	if(!priiloadercheck) {
 		const char *nopriiloader = "Priiloader not detected . Installs Disabled .";
 		MRC_Draw_Texture(20, 225, textures[TEX_MESSAGE_BUBBLE]);
+		__MaskBanner(textures[TEX_MESSAGE_BUBBLE]);
 		__Draw_Message(nopriiloader, 240, BLACK);
 		sleep(3);
 		return MENU_SELECT_THEME;
 	}
 	char *start = "Starting Custom Theme Installation !";
 	MRC_Draw_Texture(20, 225, textures[TEX_MESSAGE_BUBBLE]);
+	__MaskBanner(textures[TEX_MESSAGE_BUBBLE]);
 	__Draw_Message(start, 240, BLACK);
-	
+	sleep(2);
 	sprintf(filepath, "%s:/themes/%s", get_storage_name(thememode), ThemeList[orden[selectedtheme]].title);
 	//if(debugcard) logfile("filepath (%s) \n",filepath);
 	curthemestats.version = Get_system_version();
@@ -1523,6 +1527,7 @@ int __install_Theme() {  // install.app .csm file
 	if(curthemestats.version != ThemeList[orden[selectedtheme]].version) {
         const char *badversion = "Install can not continue system versions differ ! Press any button to exit.";
 		MRC_Draw_Texture(20, 225, textures[TEX_MESSAGE_BUBBLE]);
+		__MaskBanner(textures[TEX_MESSAGE_BUBBLE]);
 		__Draw_Message(badversion, 240, BLACK);
 		sleep(2);  
         sysHBC();
@@ -1530,6 +1535,7 @@ int __install_Theme() {  // install.app .csm file
     else if(curthemestats.region != ThemeList[orden[selectedtheme]].region) {
         const char *badregion = "Install can not continue system regions differ ! Press any button to exit.";
 		MRC_Draw_Texture(20, 225, textures[TEX_MESSAGE_BUBBLE]);
+		__MaskBanner(textures[TEX_MESSAGE_BUBBLE]);
 		__Draw_Message(badregion, 240, BLACK);
 		sleep(2);  
         sysHBC();
@@ -1543,12 +1549,17 @@ int __install_Theme() {  // install.app .csm file
     // Close file 
     if(fp) fclose(fp);
 		
-	char *done = "Your Custom Theme has been installed !";
+	char *done = "Custom Theme Installation Completed !";
 	MRC_Draw_Texture(20, 225, textures[TEX_MESSAGE_BUBBLE]);
+	__MaskBanner(textures[TEX_MESSAGE_BUBBLE]);
 	__Draw_Message(done, 240, BLACK);  
 	sleep(2);
-	
-	return MENU_EXIT;
+	done = "Returning to the System Menu .";
+	MRC_Draw_Texture(20, 225, textures[TEX_MESSAGE_BUBBLE]);
+	__MaskBanner(textures[TEX_MESSAGE_BUBBLE]);
+	__Draw_Message(done, 240, BLACK);  
+	sleep(2);
+	return sys_loadmenu();
 }
 
 
