@@ -356,7 +356,7 @@ void __Draw_Page(int selected) {
 	//logfile("drawing page before setting themes\n");
 	// themes
 	theme = COLS[wideScreen]*ROWS*page;
-	logfile("theme name ->> %s\n", ThemeList[theme].title);
+	logfile("theme name ->> %s\n", ThemeList[orden[selected]].title);
 	y = FIRSTROW;
 	for(i = 0; i < ROWS; i++){
 		x = FIRSTCOL[wideScreen];
@@ -366,21 +366,21 @@ void __Draw_Page(int selected) {
 					MRC_Draw_Texture(x, y, textures[TEX_EMPTY]);
 					MRC_Draw_Tile(x, y, textures[TEX_CONTAINER], containerWidth, 0);
 				}else if(selected == i*COLS[wideScreen]+j){
-					MRC_Draw_Texture(x, y, ThemeList[theme].banner);
+					MRC_Draw_Texture(x, y, ThemeList[orden[theme]].banner);
 					MRC_Draw_Tile(x, y, textures[TEX_CONTAINER], containerWidth, 1);
-					sprintf(pagemessage, "%s", ThemeList[theme].title);
+					sprintf(pagemessage, "%s", ThemeList[orden[theme]].title);
 					MRC_Draw_String(x - containerWidth/2, y + 50, WHITE, pagemessage);
 					if(downloadable_theme_List) {
 						if(netconnection)
-							if(ThemeList[theme].has_banner == false)
+							if(ThemeList[orden[theme]].has_banner == false)
 								MRC_Draw_String(25, 430, WHITE, "[1/Y] - Download Image");
 					}
 					else {
-						if(ThemeList[theme].has_banner == false)
+						if(ThemeList[orden[theme]].has_banner == false)
 							MRC_Draw_String((640-strlen("[1] - Delete File")*8)-15, 430, WHITE, "[1/Y] - Delete File");
 					}
 				}else{
-					MRC_Draw_Texture(x, y, ThemeList[theme].banner);
+					MRC_Draw_Texture(x, y, ThemeList[orden[theme]].banner);
 					MRC_Draw_Tile(x, y, textures[TEX_CONTAINER], containerWidth, 0);
 				}
 			}
