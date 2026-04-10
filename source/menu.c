@@ -801,7 +801,7 @@ char** split_string(char* str, const char delimiter, int* count) {
 }
 u32 filelist_retrieve(bool downloadable_theme_list, int filter) {
     char dirpath[MAX_FILEPATH_LEN];
-	u32 cnt = 0, x= 0, j = 0;
+	u32 cnt = 0, x= 0;
 	struct dirent *entry = NULL;
 	needloading = true;
 	char filepath[128];
@@ -828,7 +828,7 @@ u32 filelist_retrieve(bool downloadable_theme_list, int filter) {
 			}
 		}
 		sprintf(filepath, "%s:/apps/thememanager/themeorder.cfg", get_storage_name(thememode));
-		themelist = fopen(filepath, "r");
+		themelist = fopen(filepath, "rb");
 		if(!themelist) {
 			logfile("Unable to open %s\n", filepath);
 			return 0;
@@ -2656,15 +2656,23 @@ int __Home() {
 			(i == 4 ? 0 : i + 1)
 		);
 	}
+	MRC_Draw_Texture(0, 0, textures[TEX_BACKGROUND]);
+	sprintf(tempString, "System Menu v%s_%s %u", get_system_version_Display(system_Version), get_display_region(system_Version), system_Version);
+	MRC_Draw_String(((640-strlen(tempString)*8)/2), 20, WHITE, tempString);
+	sprintf(tempString, "IOS %i", IOS_GetVersion());
+	MRC_Draw_String(20, 20, WHITE, tempString);
+	MRC_Draw_String(20, 450, WHITE, "[A] - Select Option");
+	MRC_Draw_String((640-strlen("[B] - Return")*8)-15, 450, WHITE, "[B] - Return");
+	MRC_Draw_String2((640-strlen("Options :")*8)/2, 60, WHITE, "Options :");
 	
-	__Draw_Window(HOME_BUTTON_WIDTH + 30, 300, "Options");
-	sprintf(tempString, "Device : %s", get_storage_name(thememode));
-	MRC_Draw_String(((640-strlen(tempString)*8)/2), 350, BLACK, tempString);
+	//__Draw_Window(HOME_BUTTON_WIDTH + 30, 300, "Options");
+	//sprintf(tempString, "Device : %s", get_storage_name(thememode));
+	//MRC_Draw_String(((640-strlen(tempString)*8)/2), 350, BLACK, tempString);
 	__Draw_Net_Connection(535, 5, netconnection);
-	if(downloadable_theme_List) MRC_Draw_String(((640-strlen("Mode -> Downloader")*8)/2), 380, BLACK, "Mode -> Downloader");
-	else MRC_Draw_String(((640-strlen("Mode -> Installer")*8)/2), 380, BLACK, "Mode -> Installer");
+	if(downloadable_theme_List) MRC_Draw_String(((640-strlen("Mode -> Downloader")*8)/2), 390, WHITE, "Mode -> Downloader");
+	else MRC_Draw_String(((640-strlen("Mode -> Installer")*8)/2), 390, WHITE, "Mode -> Installer");
 	hotSpot = hotSpotPrev = -1;
-	MRC_Draw_String(25, 430, WHITE, "[B] - Return");
+	//MRC_Draw_String(25, 430, WHITE, "[B] - Return");
 	
 	ret = MENU_SELECT_THEME;
 	for(;;) {
