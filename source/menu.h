@@ -60,17 +60,17 @@
 
 // themelist buffer & variables
 typedef struct{
-	char* title;
-	char* downloads;
+	char title[64];
+	char downloads[64];
     MRCtex* banner;
 	bool has_banner;
 	u8 *region;
 	u32 version;
 	int type;
 	int size;
-	char *id;
-	char *png;
-	char *mym;
+	char id[16];
+	char png[64];
+	char mym[64];
 	int downloadcount;
 } ModTheme; 
 
